@@ -11,11 +11,11 @@ class Simple(logging.Formatter):
     """
 
     @staticmethod
-    def basicConfig(*args, **kwargs):
+    def basicConfig(show_threads=False, *args, **kwargs):
         logging.basicConfig(*args, **kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
-            handler.setFormatter(Simple())
+            handler.setFormatter(Simple(show_threads))
 
     def __init__(self, show_threads=False, *args, **kwargs):
         logging.Formatter.__init__(self, *args, **kwargs)
@@ -34,14 +34,30 @@ class Simple(logging.Formatter):
         else:
             colorize = self.term.bold_yellow_on_red
 
-        if self.show_threads:
-            msg = '{} - '.format(record.threadName)
-        else:
-            msg = ''
+        record.message = record.getMessage()
+        record.asctime = self.formatTime(record, self.datefmt)
 
-        return msg + '{} - {} - [{}] - {}'.format(
-            self.term.green(self.formatTime(record, self.datefmt)),
-            colorize(record.levelname),
-            record.name,
-            record.getMessage()
-        )
+        message_items = [
+            '{t.green}{asctime}{t.normal}',
+            '{levelcolor}{levelname}{t.normal}',
+            '[{name}]',
+            '{message}',
+        ]
+        if self.show_threads:
+            message_items.insert(0, '{threadName}')
+
+        message_template = ' - '.join(message_items)
+
+        if record.exc_info:
+            # Cache the traceback text to avoid converting it multiple times
+            # (it's constant anyway)
+            if not record.exc_text:
+                record.exc_text = self.formatException(record.exc_info)
+
+        if record.exc_text:
+            message_template += '\n{t.red}{exc_text}{t.normal}'
+
+        return message_template.format(
+            t=self.term,
+            levelcolor=colorize,
+            **vars(record))
