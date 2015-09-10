@@ -8,18 +8,20 @@ class Simple(logging.Formatter):
     Fancy, colorised log output adding ANSI escape codes to the log output.
 
     :params show_threads: Whether to display thread names or not.
+    :params show_exc: Whether to display tracebacks or not.
     """
 
     @staticmethod
-    def basicConfig(show_threads=False, *args, **kwargs):
+    def basicConfig(show_exc=True, show_threads=False, *args, **kwargs):
         logging.basicConfig(*args, **kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
-            handler.setFormatter(Simple(show_threads))
+            handler.setFormatter(Simple(show_exc, show_threads))
 
-    def __init__(self, show_threads=False, *args, **kwargs):
+    def __init__(self, show_exc=False, show_threads=False, *args, **kwargs):
         logging.Formatter.__init__(self, *args, **kwargs)
         self.show_threads = show_threads
+        self.show_exc = show_exc
         self.term = Terminal()
 
     def format(self, record):
@@ -48,14 +50,15 @@ class Simple(logging.Formatter):
 
         message_template = ' - '.join(message_items)
 
-        if record.exc_info:
-            # Cache the traceback text to avoid converting it multiple times
-            # (it's constant anyway)
-            if not record.exc_text:
-                record.exc_text = self.formatException(record.exc_info)
+        if self.show_exc:
+            if record.exc_info:
+                # Cache the traceback text to avoid converting it multiple times
+                # (it's constant anyway)
+                if not record.exc_text:
+                    record.exc_text = self.formatException(record.exc_info)
 
-        if record.exc_text:
-            message_template += '\n{t.red}{exc_text}{t.normal}'
+            if record.exc_text:
+                message_template += '\n{t.red}{exc_text}{t.normal}'
 
         return message_template.format(
             t=self.term,
