@@ -13,4 +13,17 @@ setup(
     description="Collection of logging formatters.",
     license="private",
     url="https://github.com/exhuma/gouge",
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: Only',
+        'Topic :: Other/Nonlisted Topic',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: System :: Logging',
+    ],
 )
