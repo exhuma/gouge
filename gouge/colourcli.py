@@ -16,7 +16,9 @@ class Simple(logging.Formatter):
         logging.basicConfig(*args, **kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
-            handler.setFormatter(Simple(show_exc, show_threads))
+            if (hasattr(handler, 'stream') and
+                    handler.stream.name in ('<stderr>', '<stdout>')):
+                handler.setFormatter(Simple(show_exc, show_threads))
 
     def __init__(self, show_exc=False, show_threads=False, *args, **kwargs):
         logging.Formatter.__init__(self, *args, **kwargs)
