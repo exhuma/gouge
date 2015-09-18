@@ -43,14 +43,14 @@ class Simple(logging.Formatter):
 
         message_items = [
             '{t.green}{asctime}{t.normal}',
-            '{levelcolor}{levelname}{t.normal}',
+            '{levelcolor}{levelname:<10}{t.normal}',
             '{t.bold}[{name}]{t.normal}',
             '{message}',
         ]
         if self.show_threads:
-            message_items.insert(0, '{threadName}')
+            message_items.insert(0, '{threadName:<10}')
 
-        message_template = ' - '.join(message_items)
+        message_template = ' '.join(message_items)
 
         if self.show_exc:
             if record.exc_info:
