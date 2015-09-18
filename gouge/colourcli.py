@@ -28,13 +28,13 @@ class Simple(logging.Formatter):
 
     def format(self, record):
         if record.levelno <= logging.DEBUG:
-            colorize = self.term.bold_blue
+            colorize = self.term.bold_black
         elif record.levelno <= logging.INFO:
-            colorize = self.term.bold_magenta
+            colorize = self.term.cyan
         elif record.levelno <= logging.WARNING:
-            colorize = self.term.bold_yellow
+            colorize = self.term.yellow
         elif record.levelno <= logging.ERROR:
-            colorize = self.term.bold_cyan
+            colorize = self.term.bold_red
         else:
             colorize = self.term.bold_yellow_on_red
 
@@ -44,7 +44,7 @@ class Simple(logging.Formatter):
         message_items = [
             '{t.green}{asctime}{t.normal}',
             '{levelcolor}{levelname}{t.normal}',
-            '[{name}]',
+            '{t.bold}[{name}]{t.normal}',
             '{message}',
         ]
         if self.show_threads:
