@@ -16,7 +16,9 @@ class Simple(logging.Formatter):
         logging.basicConfig(*args, **kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
-            handler.setFormatter(Simple(show_exc, show_threads))
+            if (hasattr(handler, 'stream') and
+                    handler.stream.name in ('<stderr>', '<stdout>')):
+                handler.setFormatter(Simple(show_exc, show_threads))
 
     def __init__(self, show_exc=False, show_threads=False, *args, **kwargs):
         logging.Formatter.__init__(self, *args, **kwargs)
@@ -26,13 +28,13 @@ class Simple(logging.Formatter):
 
     def format(self, record):
         if record.levelno <= logging.DEBUG:
-            colorize = self.term.bold_blue
+            colorize = self.term.bold_black
         elif record.levelno <= logging.INFO:
-            colorize = self.term.bold_magenta
+            colorize = self.term.cyan
         elif record.levelno <= logging.WARNING:
-            colorize = self.term.bold_yellow
+            colorize = self.term.yellow
         elif record.levelno <= logging.ERROR:
-            colorize = self.term.bold_cyan
+            colorize = self.term.bold_red
         else:
             colorize = self.term.bold_yellow_on_red
 
@@ -41,14 +43,14 @@ class Simple(logging.Formatter):
 
         message_items = [
             '{t.green}{asctime}{t.normal}',
-            '{levelcolor}{levelname}{t.normal}',
-            '[{name}]',
+            '{levelcolor}{levelname:<10}{t.normal}',
+            '{t.bold}[{name}]{t.normal}',
             '{message}',
         ]
         if self.show_threads:
-            message_items.insert(0, '{threadName}')
+            message_items.insert(0, '{threadName:<10}')
 
-        message_template = ' - '.join(message_items)
+        message_template = ' '.join(message_items)
 
         if self.show_exc:
             if record.exc_info:
