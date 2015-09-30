@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="gouge",
-    version=open('gouge/version.txt').read().strip(),
+    name="chisel",
+    version=open('chisel/version.txt').read().strip(),
     packages=find_packages(),
     install_requires=[
         'blessings',
@@ -12,7 +12,7 @@ setup(
     author_email="michel@albert.lu",
     description="Collection of logging formatters.",
     license="private",
-    url="https://github.com/exhuma/gouge",
+    url="https://github.com/exhuma/chisel",
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
