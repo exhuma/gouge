@@ -1,17 +1,22 @@
 from setuptools import setup, find_packages
 
+dependencies = [
+    'blessings'
+]
+
 setup(
     name="chisel",
     version=open('chisel/version.txt').read().strip(),
     packages=find_packages(),
-    install_requires=[
-        'blessings',
-    ],
+    install_requires=dependencies,
+    requires=dependencies,
+    provides=['chisel'],
+    obsoletes=['gouge'],
     include_package_data=True,
     author="Michel Albert",
     author_email="michel@albert.lu",
     description="Collection of logging formatters.",
-    license="private",
+    license="BSD",
     url="https://github.com/exhuma/chisel",
     classifiers=[
         'Development Status :: 3 - Alpha',
