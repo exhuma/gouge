@@ -1,33 +1,85 @@
-Welcome to gouge's documentation!
-=================================
+Welcome to chisel's documentation!
+==================================
 
-Contents:
+The What and the Why
+--------------------
 
-.. toctree::
-   :maxdepth: 2
-
-
-``gouge`` is a very simple package to simplify some logging setup. Think of it
+``chisel`` is a very simple package to simplify some logging setup. Think of it
 as "Themes for the logging module". It is very "thin", and has no dependencies
-other than ``blessings``. ``blessings`` is only used for formatting (colour,
-bold, ...).
+other than :py:mod:`blessings`. :py:mod:`blessings` is only used for formatting
+(colour, bold, …).
 
-This is currently refactored out into a separate module such that I can use the
-same format in multiple applications.
+I have a fair amount of applications which log to the console. While the
+default formatting given by :py:func:`logging.basicConfig()` is usable, I
+always end up modifying it. Mostly just adding horizontal whitespace to make it
+more readable. Adding colour helps, and I've added it to some projects. My
+co-workers are in the same boat, and we end up copy/pasting logging formatters
+all over the place. The end-result: All projects have a slightly different
+formatting.
+
+The aims of ``chisel`` are:
+
+* be a repository of simple drop-in (and reusable) logging formatters.
+* have a more uniform looking output across multiple applications.
+* make formatting of the logs a simple one-liner.
 
 
-Usage example
--------------
+Why the name "chisel"?
+----------------------
+
+A "chisel_" is a tool used in woodworking. And as this module applies some
+style to the "logging" module, I found this an appropriate name for the
+project.
+
+.. _chisel: https://en.wikipedia.org/wiki/Chisel
+
+
+Examples
+========
+
+Simple Usage example
+--------------------
 
 ::
 
-    from gouge.colourcli import Simple
+    from chisel.colourcli import Simple
     Simple.basicConfig(level=logging.DEBUG)
 
 
-In this case, ``basicConfig`` is directly passed on to
-:py:meth:`logging.basicConfig` but will pepper things up. For this reason, the
-``format`` paramter in this call will be overridden.
+In this case, ``Simple.basicConfig`` is directly passed on to
+:py:meth:`logging.basicConfig` but will pepper things up by overriding the
+``format`` argument of the defaul ``basicConfig`` implementation.
+
+
+Manual Usage
+------------
+
+::
+
+    import logging
+
+    from chisel.colourcli import Simple
+
+
+    LOG = logging.getLogger()
+    handler = logging.StreamHandler()
+    handler.setFormatter(Simple())
+
+    LOG.setLevel(logging.DEBUG)
+    LOG.addHandler(handler)
+    LOG.debug('hello')
+    LOG.info('hello')
+    LOG.warning('hello')
+    LOG.error('hello')
+
+
+Caveats
+=======
+
+You should be aware, that the ``basicConfig`` methods are fairly intrusive.
+They first call :py:func:`logging.basicConfig()`, then look for every
+``stdout`` and every ``stderr`` handler attached to the root logger and replace
+their formatter.
 
 
 Indices and tables
