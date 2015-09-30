@@ -1,6 +1,13 @@
 Welcome to chisel's documentation!
 ==================================
 
+
+.. figure:: _static/snapshot1.png
+    :alt: Example screenshot
+
+    Example screenshot using the ``colourcli.Simple`` formatter.
+
+
 The What and the Why
 --------------------
 
@@ -80,6 +87,26 @@ You should be aware, that the ``basicConfig`` methods are fairly intrusive.
 They first call :py:func:`logging.basicConfig()`, then look for every
 ``stdout`` and every ``stderr`` handler attached to the root logger and replace
 their formatter.
+
+
+Themes
+======
+
+Currently I only use the :py:class:`~chisel.colourcli.Simple` theme. I may or
+may not add new themes to the project. I am open for pull-requests as long as
+they don't include hefty dependencies!
+
+As sort of a "demo", I also added :py:class:`~chisel.parseable.CSVLog` and
+:py:class:`~chisel.parseable.XMLLog`.
+
+
+Module Contents
+===============
+
+.. toctree::
+   :maxdepth: 4
+
+   api
 
 
 Indices and tables

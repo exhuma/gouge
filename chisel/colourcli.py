@@ -7,6 +7,11 @@ class Simple(logging.Formatter):
     """
     Fancy, colorised log output adding ANSI escape codes to the log output.
 
+    .. note:: This formatter *suppresses* tracebacks by default! Remember that
+        is is meant to give a concise, readable output. If you need to see
+        tracebacks on the console, you can override this setting useing
+        \*show_exc\*.
+
     :params show_threads: Whether to display thread names or not.
     :params show_exc: Whether to display tracebacks or not.
     """

@@ -81,27 +81,27 @@ class XMLLog(logging.Formatter):
     """
     XML formatter for python loggers.
 
-    The records have the following schema:
+    The records have the following schema::
 
-    <record>
-        <created />
-        <filename />
-        <funcName />
-        <levelname />
-        <levelno />
-        <lineno />
-        <module />
-        <msecs />
-        <name />
-        <pathname />
-        <process />
-        <processName />
-        <relativeCreated />
-        <thread />
-        <threadName />
-        <message />
-        <exc_text />
-    </record>
+        <record>
+            <created />
+            <filename />
+            <funcName />
+            <levelname />
+            <levelno />
+            <lineno />
+            <module />
+            <msecs />
+            <name />
+            <pathname />
+            <process />
+            <processName />
+            <relativeCreated />
+            <thread />
+            <threadName />
+            <message />
+            <exc_text />
+        </record>
     """
 
     @staticmethod
