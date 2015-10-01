@@ -8,13 +8,41 @@ Welcome to gouge's documentation!
     Example screenshot using the ``colourcli.Simple`` formatter.
 
 
-The What and the Why
---------------------
+Quick Facts
+-----------
+
+What
+    Canned logging setups.
+
+Who
+    http://michel.albert.lu
+
+When
+    Initial commit: 2015-09-09
+
+Where
+    * https://pypi.python.org/pypi/gouge
+    * https://github.com/exhuma/gouge
+
+Why
+    Because I want nice console output for logs without tedious setup.
+
+Installation
+------------
+
+::
+
+    $ pip install gouge
+
+
+Background
+----------
 
 ``gouge`` is a very simple package to simplify some logging setup. Think of it
 as "Themes for the logging module". It is very "thin", and has no dependencies
 other than :py:mod:`blessings`. :py:mod:`blessings` is only used for formatting
-(colour, bold, …).
+(colour, bold, …) and it does not have any external dependencies itself. At
+least not at the time of this writing.
 
 I have a fair amount of applications which log to the console. While the
 default formatting given by :py:func:`logging.basicConfig()` is usable, I
@@ -50,13 +78,16 @@ Simple Usage example
 
 ::
 
+    import logging
     from gouge.colourcli import Simple
     Simple.basicConfig(level=logging.DEBUG)
 
+    logging.info('Hello World!')
 
-In this case, ``Simple.basicConfig`` is directly passed on to
-:py:meth:`logging.basicConfig` but will pepper things up by overriding the
-``format`` argument of the defaul ``basicConfig`` implementation.
+
+In this case, :py:meth:`~gouge.colourcli.Simple.basicConfig` is directly passed
+on to :py:meth:`logging.basicConfig` but will pepper things up by overriding
+the ``format`` argument of the defaul ``basicConfig`` implementation.
 
 
 Manual Usage

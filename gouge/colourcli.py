@@ -7,17 +7,27 @@ class Simple(logging.Formatter):
     """
     Fancy, colorised log output adding ANSI escape codes to the log output.
 
+    :params show_threads: Whether to display thread names or not.
+    :params show_exc: Whether to display tracebacks or not.
+
     .. note:: This formatter *suppresses* tracebacks by default! Remember that
         is is meant to give a concise, readable output. If you need to see
         tracebacks on the console, you can override this setting useing
         \*show_exc\*.
-
-    :params show_threads: Whether to display thread names or not.
-    :params show_exc: Whether to display tracebacks or not.
     """
 
     @staticmethod
     def basicConfig(show_exc=True, show_threads=False, *args, **kwargs):
+        '''
+        Convenience method to have a one-liner set-up.
+
+        Both *show_exc* and *show_threads* are directly passed to
+        :py:class:`~.Simple`. The remaining *args* and *kwargs* are passed on to
+        :py:func:`logging.basicConfig`.
+
+        After returning from :py:func:`logging.basicConfig`, it will fetch the
+        *stderr* and *stdout* handlers and replace the formatter.
+        '''
         logging.basicConfig(*args, **kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
