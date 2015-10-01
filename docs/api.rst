@@ -1,15 +1,15 @@
-chisel.colourcli module
------------------------
+gouge.colourcli module
+----------------------
 
-.. automodule:: chisel.colourcli
+.. automodule:: gouge.colourcli
     :members:
     :undoc-members:
     :show-inheritance:
 
-chisel.parseable module
------------------------
+gouge.parseable module
+----------------------
 
-.. automodule:: chisel.parseable
+.. automodule:: gouge.parseable
     :members:
     :undoc-members:
     :show-inheritance:

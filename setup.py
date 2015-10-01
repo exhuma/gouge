@@ -5,21 +5,20 @@ dependencies = [
 ]
 
 setup(
-    name="chisel",
-    version=open('chisel/version.txt').read().strip(),
+    name="gouge",
+    version=open('gouge/version.txt').read().strip(),
     packages=find_packages(),
     install_requires=dependencies,
     requires=dependencies,
-    provides=['chisel'],
-    obsoletes=['gouge'],
+    provides=['gouge'],
     include_package_data=True,
     author="Michel Albert",
     author_email="michel@albert.lu",
     description="Collection of logging formatters.",
     license="BSD",
-    url="https://github.com/exhuma/chisel",
+    url="https://github.com/exhuma/gouge",
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
