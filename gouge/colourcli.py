@@ -27,13 +27,20 @@ class Simple(logging.Formatter):
 
         After returning from :py:func:`logging.basicConfig`, it will fetch the
         *stderr* and *stdout* handlers and replace the formatter.
+
+        The function also returns a list of all handlers which have been
+        modified. This is useful if you want to modify the handlers any further
+        (for example using :py:class:`~gouge.filters.ShiftingFilter`).
         '''
         logging.basicConfig(*args, **kwargs)
         root = logging.getLogger()
+        output = []
         for handler in root.handlers:
             if (hasattr(handler, 'stream') and
                     handler.stream.name in ('<stderr>', '<stdout>')):
                 handler.setFormatter(Simple(show_exc, show_threads))
+                output.append(handler)
+        return output
 
     def __init__(self, show_exc=False, show_threads=False, *args, **kwargs):
         logging.Formatter.__init__(self, *args, **kwargs)
