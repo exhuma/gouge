@@ -40,6 +40,8 @@ class ShiftingFilter:
         See :py:meth:`logging.filters.Filter.filter`
         """
         if record.name.startswith(self.logger):
-            new_level = record.levelno + self.offset
-            record.levelno = min(self.max, max(self.min, new_level))
+            new_value = record.levelno + self.offset
+            new_levelno = min(self.max, max(self.min, new_value))
+            record.levelname = logging.getLevelName(new_levelno)
+            record.levelno = new_levelno
         return True

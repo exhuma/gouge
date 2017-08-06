@@ -1,3 +1,4 @@
+import io
 import logging
 import unittest
 from functools import partial
@@ -137,3 +138,31 @@ class TestShiftingFilter(unittest.TestCase):
         record = SimpleRecord(name='a.b.c', level=logging.CRITICAL)
         filter_.filter(record)
         self.assertEqual(record.levelno, 60)
+
+
+class TestLoggingWithFilter(unittest.TestCase):
+
+    def test_attached_to_handler(self):
+        blob = io.StringIO()
+        handler = logging.StreamHandler(blob)
+        handler.setFormatter(logging.Formatter(
+            '%(levelno)s %(levelname)s %(msg)s'))
+        handler.addFilter(ShiftingFilter(-1))
+        logger_c = logging.getLogger('a.b.c')
+        logger_d = logging.getLogger('a.b.d')
+        logger_parent = logging.getLogger('a')
+        logger_parent.setLevel(logging.DEBUG)
+        logger_parent.addHandler(handler)
+
+        logger_c.error('error - c')
+        logger_d.info('info - d')
+        logger_d.debug('debug - d')
+
+        lines = blob.getvalue().splitlines()
+
+        expected = [
+            '30 WARNING error - c',
+            '10 DEBUG info - d',
+            '0 NOTSET debug - d',
+        ]
+        self.assertEqual(lines, expected)
