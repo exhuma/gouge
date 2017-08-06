@@ -31,6 +31,19 @@ class ShiftingFilter:
         self.logger = logger
         self.max = max
         self.min = min
+        self.injected_loggers = set()
+
+    def inject(self, parent):
+        if not isinstance(parent, str):
+            parent = parent.name
+        for name, logger in logging.Logger.manager.loggerDict.items():
+            if name.startswith(parent) and not isinstance(logger, logging.PlaceHolder):
+                logger.addFilter(self)
+                self.injected_loggers.add(logger)
+
+    def cleanup(self):
+        for logger in self.injected_loggers:
+            logger.removeFilter(self)
 
     def filter(self, record):
         """
