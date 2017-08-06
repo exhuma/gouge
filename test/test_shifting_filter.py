@@ -12,9 +12,7 @@ SimpleRecord = partial(
     lineno=0,
     msg='',
     args={},
-    exc_info=None,
-    func=None,
-    sinfo=None)
+    exc_info=None)
 
 
 class TestShiftingFilter(unittest.TestCase):
@@ -147,14 +145,14 @@ class TestLoggingWithFilter(unittest.TestCase):
         for logger in logging.Logger.manager.loggerDict.values():
             if isinstance(logger, logging.PlaceHolder):
                 continue
-            logger.handlers.clear()
-            logger.filters.clear()
+            del logger.handlers[:]
+            del logger.filters[:]
 
     def test_attached_to_handler(self):
         blob = io.StringIO()
         handler = logging.StreamHandler(blob)
         handler.setFormatter(logging.Formatter(
-            '%(levelno)s %(levelname)s %(msg)s'))
+            u'%(levelno)s %(levelname)s %(msg)s'))
         handler.addFilter(ShiftingFilter(-1))
         logger_c = logging.getLogger('a.b.c')
         logger_d = logging.getLogger('a.b.d')
@@ -162,16 +160,16 @@ class TestLoggingWithFilter(unittest.TestCase):
         logger_parent.setLevel(logging.DEBUG)
         logger_parent.addHandler(handler)
 
-        logger_c.error('error - c')
-        logger_d.info('info - d')
-        logger_d.debug('debug - d')
+        logger_c.error(u'error - c')
+        logger_d.info(u'info - d')
+        logger_d.debug(u'debug - d')
 
         lines = blob.getvalue().splitlines()
 
         expected = [
-            '30 WARNING error - c',
-            '10 DEBUG info - d',
-            '0 NOTSET debug - d',
+            u'30 WARNING error - c',
+            u'10 DEBUG info - d',
+            u'0 NOTSET debug - d',
         ]
         self.assertEqual(lines, expected)
 
@@ -179,7 +177,7 @@ class TestLoggingWithFilter(unittest.TestCase):
         blob = io.StringIO()
         handler = logging.StreamHandler(blob)
         handler.setFormatter(logging.Formatter(
-            '%(levelno)s %(levelname)s %(msg)s'))
+            u'%(levelno)s %(levelname)s %(msg)s'))
 
         logger_c = logging.getLogger('a.b.c')
         logger_d = logging.getLogger('a.b.d')
@@ -190,17 +188,17 @@ class TestLoggingWithFilter(unittest.TestCase):
         filter = ShiftingFilter(-1)
         filter.inject('a')
 
-        logger_c.error('error - c')
-        logger_d.info('info - d')
-        logger_d.debug('debug - d')
+        logger_c.error(u'error - c')
+        logger_d.info(u'info - d')
+        logger_d.debug(u'debug - d')
 
         filter.cleanup()
 
         lines = blob.getvalue().splitlines()
 
         expected = [
-            '30 WARNING error - c',
-            '10 DEBUG info - d',
-            '0 NOTSET debug - d',
+            u'30 WARNING error - c',
+            u'10 DEBUG info - d',
+            u'0 NOTSET debug - d',
         ]
         self.assertEqual(lines, expected)
