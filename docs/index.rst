@@ -145,6 +145,7 @@ Module Contents
 .. toctree::
    :maxdepth: 4
 
+   changelog
    api
 
 
