@@ -25,7 +25,8 @@ Where
     * https://github.com/exhuma/gouge
 
 Why
-    Because I want nice console output for logs without tedious setup.
+    Because I want to the same log behaviour across all of my applications.
+
 
 Installation
 ------------
@@ -38,11 +39,15 @@ Installation
 Background
 ----------
 
-``gouge`` is a very simple package to simplify some logging setup. Think of it
-as "Themes for the logging module". It is very "thin", and has no dependencies
-other than :py:mod:`blessings`. :py:mod:`blessings` is only used for formatting
-(colour, bold, …) and it does not have any external dependencies itself. At
-least not at the time of this writing.
+``gouge`` started off as a way to share logging formatters across all my
+applications. Starting with version 1.2, it now also contains the
+:py:class:`gouge.filter.ShiftingFilter <first filter>`. Again, to share the
+same behaviour across applications.
+
+It is very "thin", and has no dependencies other than :py:mod:`blessings`.
+:py:mod:`blessings` is only used for formatting (colour, bold, …) and it does
+not have any external dependencies itself. At least not at the time of this
+writing.
 
 I have a fair amount of applications which log to the console. While the
 default formatting given by :py:func:`logging.basicConfig()` is usable, I
@@ -57,6 +62,8 @@ The aims of ``gouge`` are:
 * be a repository of simple drop-in (and reusable) logging formatters.
 * have a more uniform looking output across multiple applications.
 * make formatting of the logs a simple one-liner.
+* provide additional functionality complementing the standard logging
+  framework.
 
 
 Why the name "gouge"?
