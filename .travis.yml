@@ -5,5 +5,5 @@ python:
   - "3.5"
   - "3.6"
   - "nightly" # currently points to 3.6-dev
-install: "pip install ."
+install: "pip install . 'pytest ~= 3.4'"
 script: "pytest test"
