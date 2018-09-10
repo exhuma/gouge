@@ -37,6 +37,7 @@ class Simple(logging.Formatter):
         output = []
         for handler in root.handlers:
             if (hasattr(handler, 'stream') and
+                    hasattr(handler.stream, 'name') and
                     handler.stream.name in ('<stderr>', '<stdout>')):
                 handler.setFormatter(Simple(show_exc, show_threads))
                 output.append(handler)
