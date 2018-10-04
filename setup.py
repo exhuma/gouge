@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 
 dependencies = [
-    'blessings'
+    'blessings',
+    'typing',
 ]
 
 setup(
