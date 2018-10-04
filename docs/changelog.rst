@@ -5,6 +5,7 @@ Version 1.2.1
 -------------
 
 * Add type-hints & fix minor typing bugs
+* Add ``gouge.__version__`` attribute
 
 Version 1.2.0
 -------------
