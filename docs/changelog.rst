@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Version 1.2.1
+-------------
+
+* Add type-hints & fix minor typing bugs
+
 Version 1.2.0
 -------------
 
