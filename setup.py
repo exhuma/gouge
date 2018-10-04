@@ -1,7 +1,8 @@
 from setuptools import setup, find_packages
 
 dependencies = [
-    'blessings'
+    'blessings',
+    'typing',
 ]
 
 setup(
@@ -12,6 +13,9 @@ setup(
     requires=dependencies,
     provides=['gouge'],
     include_package_data=True,
+    package_data={
+        'gouge': ['py.typed']
+    },
     author="Michel Albert",
     author_email="michel@albert.lu",
     description="Collection of logging formatters.",
