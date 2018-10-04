@@ -2,6 +2,7 @@
 This module contains generally useful filters.
 """
 import logging
+from typing import Set
 from warnings import warn
 
 
@@ -42,6 +43,7 @@ class ShiftingFilter:
     """
     def __init__(self, shift_by=0, logger='',
                  min=logging.NOTSET, max=logging.CRITICAL, offset=0):
+        # type: (int, str, int, int, int) -> None
         if offset and shift_by:
             warn('You specified both "offset" and "shift_by"! "shift_by" '
                  'will be ignored!', SyntaxWarning)
@@ -53,9 +55,10 @@ class ShiftingFilter:
         self.logger = logger
         self.max = max
         self.min = min
-        self.injected_loggers = set()
+        self.injected_loggers = set()  # type: Set[logging.Logger]
 
     def inject(self, parent):
+        # type: (str) -> None
         """
         Loop over each known logger and attach this filter.
 
@@ -72,19 +75,22 @@ class ShiftingFilter:
         """
         if not isinstance(parent, str):
             parent = parent.name
-        for name, logger in logging.Logger.manager.loggerDict.items():
+        items = logging.Logger.manager.loggerDict.items()  # type: ignore
+        for name, logger in items:
             if name.startswith(parent) and not isinstance(logger, logging.PlaceHolder):
                 logger.addFilter(self)
                 self.injected_loggers.add(logger)
 
     def cleanup(self):
+        # type: () -> None
         """
         Remove all filters applied via :py:meth:`~.ShiftingFilter.inject`.
         """
         for logger in self.injected_loggers:
-            logger.removeFilter(self)
+            logger.removeFilter(self)  # type: ignore
 
     def filter(self, record):
+        # type: (logging.LogRecord) -> bool
         """
         Always returns *True* but will modify the logging level of *record* by
         the rules defined in this filter.

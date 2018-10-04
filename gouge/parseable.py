@@ -1,6 +1,7 @@
 import csv
 import io
 import logging
+from typing import Any, Optional
 
 
 class CSVLog(logging.Formatter):
@@ -29,27 +30,33 @@ class CSVLog(logging.Formatter):
     """
 
     @staticmethod
-    def basicConfig(*args, **kwargs):
-        logging.basicConfig(*args, **kwargs)
+    def basicConfig(**kwargs):
+        # type: (Any) -> None
+        logging.basicConfig(**kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
             handler.setFormatter(CSVLog())
 
-    def __init__(self, *args, **kwargs):
-        logging.Formatter.__init__(self, *args, **kwargs)
+    def __init__(self, fmt=None, datefmt=None):
+        # type: (Optional[str], Optional[str]) -> None
+        logging.Formatter.__init__(self, fmt, datefmt)
         self.buffer = io.StringIO()
         self.writer = csv.writer(self.buffer)
 
     def format(self, record):
+        # type: (logging.LogRecord) -> str
 
         record.message = record.getMessage()
 
         if record.exc_info:
             # Cache the traceback text to avoid converting it multiple times
             # (it's constant anyway)
-            if not record.exc_text:
-                record.exc_text = self.formatException(record.exc_info)
+            exc_text = getattr(record, 'exc_text', '')
+            if not exc_text:
+                record.exc_text = self.formatException(  # type: ignore
+                    record.exc_info)
 
+        exc_text = getattr(record, 'exc_text', '')
         message_items = [
             record.created,
             record.filename,
@@ -67,7 +74,7 @@ class CSVLog(logging.Formatter):
             record.thread,
             record.threadName,
             record.message,
-            record.exc_text if record.exc_text else '',
+            exc_text,
         ]
 
         self.writer.writerow(message_items)
@@ -105,27 +112,33 @@ class XMLLog(logging.Formatter):
     """
 
     @staticmethod
-    def basicConfig(*args, **kwargs):
-        logging.basicConfig(*args, **kwargs)
+    def basicConfig(**kwargs):
+        # type: (Any) -> None
+        logging.basicConfig(**kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
             handler.setFormatter(XMLLog())
 
-    def __init__(self, *args, **kwargs):
-        logging.Formatter.__init__(self, *args, **kwargs)
-        from xml.dom.minidom import Document
+    def __init__(self, fmt=None, datefmt=None):
+        # type: (Optional[str], Optional[str]) -> None
+        logging.Formatter.__init__(self, fmt, datefmt)
+        from xml.dom.minidom import Document  # type: ignore
         self.doc = Document()
 
     def format(self, record):
+        # type: (logging.LogRecord) -> str
 
         record.message = record.getMessage()
 
         if record.exc_info:
             # Cache the traceback text to avoid converting it multiple times
             # (it's constant anyway)
-            if not record.exc_text:
-                record.exc_text = self.formatException(record.exc_info)
+            exc_text = getattr(record, 'exc_text', '')
+            if not exc_text:
+                record.exc_text = self.formatException(  # type: ignore
+                    record.exc_info)
 
+        exc_text = getattr(record, 'exc_text', '')
         message_items = [
             ('created', record.created),
             ('filename', record.filename),
@@ -143,7 +156,7 @@ class XMLLog(logging.Formatter):
             ('thread', record.thread),
             ('threadName', record.threadName),
             ('message', record.message),
-            ('exc_text', record.exc_text if record.exc_text else ''),
+            ('exc_text', exc_text),
         ]
 
         element = self.doc.createElement('record')
@@ -151,4 +164,5 @@ class XMLLog(logging.Formatter):
             subelement = self.doc.createElement(tagname)
             subelement.appendChild(self.doc.createTextNode(str(value)))
             element.appendChild(subelement)
-        return element.toxml()
+        output = element.toxml()  # type: str
+        return output
