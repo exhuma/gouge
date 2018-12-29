@@ -52,12 +52,12 @@ class Simple(logging.Formatter):
         return output
 
     def __init__(self, show_exc=False, show_threads=False, fmt=None,
-                 datefmt=None):
-        # type: (bool, bool, Optional[str], Optional[str]) -> None
+                 datefmt=None, force_styling=False):
+        # type: (bool, bool, Optional[str], Optional[str], Optional[bool]) -> None
         logging.Formatter.__init__(self, fmt, datefmt)
         self.show_threads = show_threads
         self.show_exc = show_exc
-        self.term = Terminal()
+        self.term = Terminal(force_styling=force_styling)
 
     def format(self, record):
         # type: (LogRecord) -> str
