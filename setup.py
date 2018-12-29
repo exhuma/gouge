@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 dependencies = [
-    'blessings',
     'typing',
+    'colorama',
 ]
 
 setup(
