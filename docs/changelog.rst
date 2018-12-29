@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 1.3.0
+-------------
+
+* Replace ``blessings`` with ``colorama``. This will make colors work on
+  Windows as well.
+
+
 Version 1.2.1
 -------------
 
