@@ -13,7 +13,7 @@ class Simple(logging.Formatter):
     .. note:: This formatter *suppresses* tracebacks by default! Remember that
         is is meant to give a concise, readable output. If you need to see
         tracebacks on the console, you can override this setting useing
-        \*show_exc\*.
+        \\*show_exc\\*.
     """
 
     @staticmethod
