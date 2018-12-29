@@ -2,7 +2,7 @@ import logging
 from logging import Handler, LogRecord
 from typing import Any, List, Optional
 
-from blessings import Terminal
+import colorama as clr
 
 
 class Simple(logging.Formatter):
@@ -57,28 +57,28 @@ class Simple(logging.Formatter):
         logging.Formatter.__init__(self, fmt, datefmt)
         self.show_threads = show_threads
         self.show_exc = show_exc
-        self.term = Terminal(force_styling=force_styling)
+        clr.init(strip=(False if force_styling else None))
 
     def format(self, record):
         # type: (LogRecord) -> str
         if record.levelno <= logging.DEBUG:
-            colorize = self.term.bold_black
+            colorize = clr.Style.BRIGHT + clr.Fore.BLACK
         elif record.levelno <= logging.INFO:
-            colorize = self.term.cyan
+            colorize = clr.Fore.CYAN
         elif record.levelno <= logging.WARNING:
-            colorize = self.term.yellow
+            colorize = clr.Fore.YELLOW
         elif record.levelno <= logging.ERROR:
-            colorize = self.term.bold_red
+            colorize = clr.Style.BRIGHT + clr.Fore.RED
         else:
-            colorize = self.term.bold_yellow_on_red
+            colorize = clr.Style.BRIGHT + clr.Fore.YELLOW + clr.Back.RED
 
         record.message = record.getMessage()
         record.asctime = self.formatTime(record, self.datefmt or '')
 
         message_items = [
-            '{t.green}{asctime}{t.normal}',
-            '{levelcolor}{levelname:<10}{t.normal}',
-            '{t.bold}[{name}]{t.normal}',
+            '{f.GREEN}{asctime}{s.RESET_ALL}',
+            '{levelcolor}{levelname:<10}{s.RESET_ALL}',
+            '{s.BRIGHT}[{name}]{s.RESET_ALL}',
             '{message}',
         ]
         if self.show_threads:
@@ -97,9 +97,10 @@ class Simple(logging.Formatter):
 
             exc_text = getattr(record, 'exc_text', '')
             if exc_text:
-                message_template += '\n{t.red}{exc_text}{t.normal}'
+                message_template += '\n{f.RED}{exc_text}{s.RESET_ALL}'
 
         return message_template.format(
-            t=self.term,
             levelcolor=colorize,
+            f=clr.Fore,
+            s=clr.Style,
             **vars(record))
