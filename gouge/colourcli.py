@@ -19,13 +19,14 @@ class Simple(logging.Formatter):
     """
 
     @staticmethod
-    def basicConfig(show_exc=True, show_threads=False, **kwargs):
-        # type: (bool, bool, Any) -> List[Handler]
+    def basicConfig(show_exc=True, show_threads=False, force_styling=False,
+                    **kwargs):
+        # type: (bool, bool, bool, Any) -> List[Handler]
         '''
         Convenience method to have a one-liner set-up.
 
-        Both *show_exc* and *show_threads* are directly passed to
-        :py:class:`~.Simple`. The remaining *args* and *kwargs* are passed on to
+        *show_exc*, *show_threads* and *force_styling* are directly passed to
+        :py:class:`~.Simple`. The remaining *kwargs* are passed on to
         :py:func:`logging.basicConfig`.
 
         After returning from :py:func:`logging.basicConfig`, it will fetch the
@@ -35,6 +36,7 @@ class Simple(logging.Formatter):
         modified. This is useful if you want to modify the handlers any further
         (for example using :py:class:`~gouge.filters.ShiftingFilter`).
         '''
+        clr.init(strip=(False if force_styling else None))
         logging.basicConfig(**kwargs)
         root = logging.getLogger()
         output = []
@@ -57,7 +59,7 @@ class Simple(logging.Formatter):
         logging.Formatter.__init__(self, fmt, datefmt)
         self.show_threads = show_threads
         self.show_exc = show_exc
-        clr.init(strip=(False if force_styling else None))
+        self.force_styling = force_styling
 
     def format(self, record):
         # type: (LogRecord) -> str
