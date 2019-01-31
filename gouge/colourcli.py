@@ -1,3 +1,6 @@
+"""
+This module contains everything needed to emit colourful messages on the CLI
+"""
 import logging
 from logging import Handler, LogRecord
 from typing import Any, List, Optional
