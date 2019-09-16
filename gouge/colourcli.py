@@ -1,3 +1,6 @@
+"""
+This module contains everything needed to emit colourful messages on the CLI
+"""
 import logging
 from logging import Handler, LogRecord
 from typing import Any, List, Optional
@@ -14,8 +17,8 @@ class Simple(logging.Formatter):
 
     .. note:: This formatter *suppresses* tracebacks by default! Remember that
         is is meant to give a concise, readable output. If you need to see
-        tracebacks on the console, you can override this setting useing
-        \\*show_exc\\*.
+        tracebacks on the console, you can override this setting using
+        *show_exc*.
     """
 
     @staticmethod
@@ -61,6 +64,17 @@ class Simple(logging.Formatter):
         self.show_exc = show_exc
         self.force_styling = force_styling
 
+    def colorised_exception(self, level, exc_text):
+        # type: (int, str) -> str
+        """
+        Colorises the exception text based on log level
+        """
+        if level >= logging.ERROR:
+            output = '\n{f.RED}{exc_text}{s.RESET_ALL}'
+        else:
+            output = '\n{f.CYAN}{exc_text}{s.RESET_ALL}'
+        return output
+
     def format(self, record):
         # type: (LogRecord) -> str
         if record.levelno <= logging.DEBUG:
@@ -99,7 +113,8 @@ class Simple(logging.Formatter):
 
             exc_text = getattr(record, 'exc_text', '')
             if exc_text:
-                message_template += '\n{f.RED}{exc_text}{s.RESET_ALL}'
+                message_template += self.colorised_exception(
+                    record.levelno, exc_text)
 
         return message_template.format(
             levelcolor=colorize,
