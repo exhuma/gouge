@@ -64,6 +64,17 @@ class Simple(logging.Formatter):
         self.show_exc = show_exc
         self.force_styling = force_styling
 
+    def colorised_exception(self, level, exc_text):
+        # type: (int, str) -> str
+        """
+        Colorises the exception text based on log level
+        """
+        if level >= logging.ERROR:
+            output = '\n{f.RED}{exc_text}{s.RESET_ALL}'
+        else:
+            output = '\n{f.CYAN}{exc_text}{s.RESET_ALL}'
+        return output
+
     def format(self, record):
         # type: (LogRecord) -> str
         if record.levelno <= logging.DEBUG:
@@ -102,7 +113,8 @@ class Simple(logging.Formatter):
 
             exc_text = getattr(record, 'exc_text', '')
             if exc_text:
-                message_template += '\n{f.RED}{exc_text}{s.RESET_ALL}'
+                message_template += self.colorised_exception(
+                    record.levelno, exc_text)
 
         return message_template.format(
             levelcolor=colorize,
