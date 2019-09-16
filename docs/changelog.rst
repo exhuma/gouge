@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 1.4.0
+-------------
+
+* Log messages below the "ERROR" level now show exception tracebacks in cyan
+  instead of red. This makes them less intrusive and improves visibility of
+  error logs
+
+
 Version 1.3.0
 -------------
 
