@@ -2,4 +2,4 @@
 
 sh -c "python3 -m venv env"
 sh -c "./env/bin/pip install -e ."
-sh -c "./env/bin/pip install -e pytest"
+sh -c "./env/bin/pip install pytest"
