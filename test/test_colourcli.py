@@ -31,10 +31,10 @@ def test_format_record_red_exception():
     assert expected in output
 
 
-def test_format_record_cyan_exception():
+def test_format_record_grey_exception():
     """
     If the message level is higher or equal than "ERROR" we want to see the
-    esception as red text. For lower levels we use cyan
+    esception as red text. For lower levels we use grey
     """
     record = LogRecord(
         'name',
@@ -48,6 +48,6 @@ def test_format_record_cyan_exception():
     formatter = Simple(show_exc=True)
     terminal = Terminal(force_styling=True)
     formatter.term = terminal
-    expected = terminal.cyan + 'ValueError'
+    expected = terminal.grey + 'ValueError'
     output = formatter.format(record)
     assert expected in output

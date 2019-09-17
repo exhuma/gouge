@@ -72,7 +72,7 @@ class Simple(logging.Formatter):
         if level >= logging.ERROR:
             output = '\n{f.RED}{exc_text}{s.RESET_ALL}'
         else:
-            output = '\n{f.CYAN}{exc_text}{s.RESET_ALL}'
+            output = '\n{f.WHITE}{s.DIM}{exc_text}{s.RESET_ALL}'
         return output
 
     def format(self, record):
