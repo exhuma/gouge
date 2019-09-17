@@ -7,4 +7,3 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - uses: ./.github/actions/setup-env
-    - uses: ./.github/actions/run-test
