@@ -29,17 +29,12 @@ jobs:
 
   quality-control:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.8]
-
     steps:
       - uses: actions/checkout@v1
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.8
           #      - name: Check black formatting
           #        run: |
           #          pip install black
@@ -54,11 +49,6 @@ jobs:
 
     needs: test
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 1
-      matrix:
-        python-version: [3.8]
-
     steps:
       - uses: actions/checkout@v1
       - name: Build distribution
@@ -72,7 +62,7 @@ jobs:
         if: >
             github.event_name == 'push' &&
             startsWith(github.event.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@e777b333
+        uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}
