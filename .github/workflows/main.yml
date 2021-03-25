@@ -40,10 +40,10 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Check black formatting
-        run: |
-          pip install black
-          black --check puresnmp
+          #      - name: Check black formatting
+          #        run: |
+          #          pip install black
+          #          black --check puresnmp
       - name: Lint with pylint
         run: |
           pip install pylint
