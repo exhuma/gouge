@@ -35,14 +35,14 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
-          #      - name: Check black formatting
-          #        run: |
-          #          pip install black
-          #          black --check puresnmp
+      - name: Check black formatting
+        run: |
+          pip install black
+          black --check gouge
       - name: Lint with pylint
         run: |
           pip install pylint
-          pylint --reports=y --exit-zero puresnmp
+          pylint --reports=y --exit-zero gouge
 
 
   publish:
