@@ -51,12 +51,11 @@ class CSVLog(logging.Formatter):
         if record.exc_info:
             # Cache the traceback text to avoid converting it multiple times
             # (it's constant anyway)
-            exc_text = getattr(record, 'exc_text', '')
+            exc_text = getattr(record, "exc_text", "")
             if not exc_text:
-                record.exc_text = self.formatException(  # type: ignore
-                    record.exc_info)
+                record.exc_text = self.formatException(record.exc_info)  # type: ignore
 
-        exc_text = getattr(record, 'exc_text', '')
+        exc_text = getattr(record, "exc_text", "")
         message_items = [
             record.created,
             record.filename,
@@ -123,6 +122,7 @@ class XMLLog(logging.Formatter):
         # type: (Optional[str], Optional[str]) -> None
         logging.Formatter.__init__(self, fmt, datefmt)
         from xml.dom.minidom import Document  # type: ignore
+
         self.doc = Document()
 
     def format(self, record):
@@ -133,33 +133,32 @@ class XMLLog(logging.Formatter):
         if record.exc_info:
             # Cache the traceback text to avoid converting it multiple times
             # (it's constant anyway)
-            exc_text = getattr(record, 'exc_text', '')
+            exc_text = getattr(record, "exc_text", "")
             if not exc_text:
-                record.exc_text = self.formatException(  # type: ignore
-                    record.exc_info)
+                record.exc_text = self.formatException(record.exc_info)  # type: ignore
 
-        exc_text = getattr(record, 'exc_text', '')
+        exc_text = getattr(record, "exc_text", "")
         message_items = [
-            ('created', record.created),
-            ('filename', record.filename),
-            ('funcName', record.funcName),
-            ('levelname', record.levelname),
-            ('levelno', record.levelno),
-            ('lineno', record.lineno),
-            ('module', record.module),
-            ('msecs', record.msecs),
-            ('name', record.name),
-            ('pathname', record.pathname),
-            ('process', record.process),
-            ('processName', record.processName),
-            ('relativeCreated', record.relativeCreated),
-            ('thread', record.thread),
-            ('threadName', record.threadName),
-            ('message', record.message),
-            ('exc_text', exc_text),
+            ("created", record.created),
+            ("filename", record.filename),
+            ("funcName", record.funcName),
+            ("levelname", record.levelname),
+            ("levelno", record.levelno),
+            ("lineno", record.lineno),
+            ("module", record.module),
+            ("msecs", record.msecs),
+            ("name", record.name),
+            ("pathname", record.pathname),
+            ("process", record.process),
+            ("processName", record.processName),
+            ("relativeCreated", record.relativeCreated),
+            ("thread", record.thread),
+            ("threadName", record.threadName),
+            ("message", record.message),
+            ("exc_text", exc_text),
         ]
 
-        element = self.doc.createElement('record')
+        element = self.doc.createElement("record")
         for tagname, value in message_items:
             subelement = self.doc.createElement(tagname)
             subelement.appendChild(self.doc.createTextNode(str(value)))

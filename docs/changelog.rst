@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 1.5.0
+-------------
+
+* Add ``show_pid`` option to ``gouge.colourcli.Simple`` to include process IDs
+  in log output.
+
 Version 1.4.0
 -------------
 

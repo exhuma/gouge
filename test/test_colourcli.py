@@ -3,9 +3,9 @@ This module tests the log formatter which colorises messages
 """
 
 import logging
+import re
 from logging import LogRecord
 
-from blessings import Terminal
 from gouge.colourcli import Simple
 
 
@@ -15,20 +15,18 @@ def test_format_record_red_exception():
     esception as red text. For lower levels we use another color.
     """
     record = LogRecord(
-        'name',
+        "name",
         logging.ERROR,
-        'path',
+        "path",
         42,
-        'message',
+        "message",
         args={},
-        exc_info=(ValueError, ValueError('foo'), None)
+        exc_info=(ValueError, ValueError("foo"), None),
     )
     formatter = Simple(show_exc=True)
-    terminal = Terminal(force_styling=True)
-    formatter.term = terminal
-    expected = terminal.red + 'ValueError'
+    needle = "\x1b[31mValueError"
     output = formatter.format(record)
-    assert expected in output
+    assert needle in output
 
 
 def test_format_record_grey_exception():
@@ -37,17 +35,27 @@ def test_format_record_grey_exception():
     esception as red text. For lower levels we use grey
     """
     record = LogRecord(
-        'name',
+        "name",
         logging.DEBUG,
-        'path',
+        "path",
         42,
-        'message',
+        "message",
         args={},
-        exc_info=(ValueError, ValueError('foo'), None)
+        exc_info=(ValueError, ValueError("foo"), None),
     )
     formatter = Simple(show_exc=True)
-    terminal = Terminal(force_styling=True)
-    formatter.term = terminal
-    expected = terminal.grey + 'ValueError'
+    needle = "\x1b[37m\x1b[2mValueError"
     output = formatter.format(record)
-    assert expected in output
+    assert needle in output
+
+
+def test_show_pid():
+    """
+    Ensure the PID is visible if requested
+    """
+    record = LogRecord(
+        "name", logging.DEBUG, "path", 42, "message", args={}, exc_info=None
+    )
+    formatter = Simple(show_pid=True)
+    output = formatter.format(record)
+    assert re.search(r"\[PID: \d+\s*\]", output)
