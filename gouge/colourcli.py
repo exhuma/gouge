@@ -22,13 +22,15 @@ class Simple(logging.Formatter):
     """
 
     @staticmethod
-    def basicConfig(show_exc=True, show_threads=False, force_styling=False, **kwargs):
-        # type: (bool, bool, bool, Any) -> List[Handler]
+    def basicConfig(
+        show_exc=True, show_threads=False, force_styling=False, show_pid=False, **kwargs
+    ):
+        # type: (bool, bool, bool, bool, Any) -> List[Handler]
         """
         Convenience method to have a one-liner set-up.
 
-        *show_exc*, *show_threads* and *force_styling* are directly passed to
-        :py:class:`~.Simple`. The remaining *kwargs* are passed on to
+        *show_exc*, *show_threads*, *show_pid* and *force_styling* are directly
+        passed to :py:class:`~.Simple`. The remaining *kwargs* are passed on to
         :py:func:`logging.basicConfig`.
 
         After returning from :py:func:`logging.basicConfig`, it will fetch the
@@ -51,7 +53,7 @@ class Simple(logging.Formatter):
             if stream_name not in ("<stderr>", "<stdout>"):
                 continue
 
-            handler.setFormatter(Simple(show_exc, show_threads))
+            handler.setFormatter(Simple(show_exc, show_threads, show_pid=show_pid))
             output.append(handler)
         return output
 
@@ -62,12 +64,14 @@ class Simple(logging.Formatter):
         fmt=None,
         datefmt=None,
         force_styling=False,
+        show_pid=False,
     ):
-        # type: (bool, bool, Optional[str], Optional[str], Optional[bool]) -> None
+        # type: (bool, bool, Optional[str], Optional[str], bool, bool) -> None
         logging.Formatter.__init__(self, fmt, datefmt)
         self.show_threads = show_threads
         self.show_exc = show_exc
         self.force_styling = force_styling
+        self.show_pid = show_pid
 
     def colorised_exception(self, level, exc_text):
         # type: (int, str) -> str
@@ -104,6 +108,9 @@ class Simple(logging.Formatter):
         ]
         if self.show_threads:
             message_items.insert(0, "{threadName:<10}")
+
+        if self.show_pid:
+            message_items.insert(0, "{s.BRIGHT}[PID: {process:<5}]{s.RESET_ALL}")
 
         message_template = " ".join(message_items)
 
