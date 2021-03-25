@@ -43,7 +43,10 @@ jobs:
         run: |
           pip install pylint
           pylint --reports=y --exit-zero gouge
-
+      - name: Check pre-commit hooks
+        run: |
+          pip install pre-commit
+          pre-commit run --all-files
 
   publish:
 
