@@ -22,10 +22,9 @@ class Simple(logging.Formatter):
     """
 
     @staticmethod
-    def basicConfig(show_exc=True, show_threads=False, force_styling=False,
-                    **kwargs):
+    def basicConfig(show_exc=True, show_threads=False, force_styling=False, **kwargs):
         # type: (bool, bool, bool, Any) -> List[Handler]
-        '''
+        """
         Convenience method to have a one-liner set-up.
 
         *show_exc*, *show_threads* and *force_styling* are directly passed to
@@ -38,26 +37,32 @@ class Simple(logging.Formatter):
         The function also returns a list of all handlers which have been
         modified. This is useful if you want to modify the handlers any further
         (for example using :py:class:`~gouge.filters.ShiftingFilter`).
-        '''
+        """
         clr.init(strip=(False if force_styling else None))
         logging.basicConfig(**kwargs)
         root = logging.getLogger()
         output = []
         for handler in root.handlers:
-            stream = getattr(handler, 'stream', None)
+            stream = getattr(handler, "stream", None)
             if not stream:
                 continue
 
-            stream_name = getattr(stream, 'name', None)
-            if stream_name not in ('<stderr>', '<stdout>'):
+            stream_name = getattr(stream, "name", None)
+            if stream_name not in ("<stderr>", "<stdout>"):
                 continue
 
             handler.setFormatter(Simple(show_exc, show_threads))
             output.append(handler)
         return output
 
-    def __init__(self, show_exc=False, show_threads=False, fmt=None,
-                 datefmt=None, force_styling=False):
+    def __init__(
+        self,
+        show_exc=False,
+        show_threads=False,
+        fmt=None,
+        datefmt=None,
+        force_styling=False,
+    ):
         # type: (bool, bool, Optional[str], Optional[str], Optional[bool]) -> None
         logging.Formatter.__init__(self, fmt, datefmt)
         self.show_threads = show_threads
@@ -70,9 +75,9 @@ class Simple(logging.Formatter):
         Colorises the exception text based on log level
         """
         if level >= logging.ERROR:
-            output = '\n{f.RED}{exc_text}{s.RESET_ALL}'
+            output = "\n{f.RED}{exc_text}{s.RESET_ALL}"
         else:
-            output = '\n{f.WHITE}{s.DIM}{exc_text}{s.RESET_ALL}'
+            output = "\n{f.WHITE}{s.DIM}{exc_text}{s.RESET_ALL}"
         return output
 
     def format(self, record):
@@ -89,35 +94,33 @@ class Simple(logging.Formatter):
             colorize = clr.Style.BRIGHT + clr.Fore.YELLOW + clr.Back.RED
 
         record.message = record.getMessage()
-        record.asctime = self.formatTime(record, self.datefmt or '')
+        record.asctime = self.formatTime(record, self.datefmt or "")
 
         message_items = [
-            '{f.GREEN}{asctime}{s.RESET_ALL}',
-            '{levelcolor}{levelname:<10}{s.RESET_ALL}',
-            '{s.BRIGHT}[{name}]{s.RESET_ALL}',
-            '{message}',
+            "{f.GREEN}{asctime}{s.RESET_ALL}",
+            "{levelcolor}{levelname:<10}{s.RESET_ALL}",
+            "{s.BRIGHT}[{name}]{s.RESET_ALL}",
+            "{message}",
         ]
         if self.show_threads:
-            message_items.insert(0, '{threadName:<10}')
+            message_items.insert(0, "{threadName:<10}")
 
-        message_template = ' '.join(message_items)
+        message_template = " ".join(message_items)
 
         if self.show_exc:
             if record.exc_info:
                 # Cache the traceback text to avoid converting it multiple times
                 # (it's constant anyway)
-                exc_text = getattr(record, 'exc_text', '')
+                exc_text = getattr(record, "exc_text", "")
                 if not exc_text:
                     record.exc_text = self.formatException(  # type: ignore
-                        record.exc_info)
+                        record.exc_info
+                    )
 
-            exc_text = getattr(record, 'exc_text', '')
+            exc_text = getattr(record, "exc_text", "")
             if exc_text:
-                message_template += self.colorised_exception(
-                    record.levelno, exc_text)
+                message_template += self.colorised_exception(record.levelno, exc_text)
 
         return message_template.format(
-            levelcolor=colorize,
-            f=clr.Fore,
-            s=clr.Style,
-            **vars(record))
+            levelcolor=colorize, f=clr.Fore, s=clr.Style, **vars(record)
+        )

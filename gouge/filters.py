@@ -41,12 +41,17 @@ class ShiftingFilter:
     :param offset: An explicit, fine-grained offset value. This overrides
         *shift_by*!
     """
-    def __init__(self, shift_by=0, logger='',
-                 min=logging.NOTSET, max=logging.CRITICAL, offset=0):
+
+    def __init__(
+        self, shift_by=0, logger="", min=logging.NOTSET, max=logging.CRITICAL, offset=0
+    ):
         # type: (int, str, int, int, int) -> None
         if offset and shift_by:
-            warn('You specified both "offset" and "shift_by"! "shift_by" '
-                 'will be ignored!', SyntaxWarning)
+            warn(
+                'You specified both "offset" and "shift_by"! "shift_by" '
+                "will be ignored!",
+                SyntaxWarning,
+            )
 
         if offset:
             self.offset = offset
