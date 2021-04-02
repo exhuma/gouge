@@ -1,9 +1,13 @@
+import sys
+
 from setuptools import find_packages, setup
 
 dependencies = [
-    "typing",
     "colorama",
 ]
+
+if sys.version_info < (3, 5):
+    dependencies.append("typing")
 
 setup(
     name="gouge",
