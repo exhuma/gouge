@@ -1,13 +1,15 @@
 import io
 import logging
-import pytest
 from functools import partial
+
+import pytest
 
 from gouge.filters import ShiftingFilter
 
 SimpleRecord = partial(
     logging.LogRecord, pathname="", lineno=0, msg="", args={}, exc_info=None
 )
+
 
 @pytest.fixture
 def reset_logging():
@@ -31,6 +33,7 @@ def test_noshift():
     filter_.filter(record)
     assert record.levelno == logging.DEBUG
 
+
 def test_noshift_unmatching():
     """
     If the name does not match, no shifting should occur.
@@ -39,6 +42,7 @@ def test_noshift_unmatching():
     record = SimpleRecord(name="a.b.c", level=logging.DEBUG)
     filter_.filter(record)
     assert record.levelno == logging.DEBUG
+
 
 def test_noshift_parent():
     """
@@ -49,6 +53,7 @@ def test_noshift_parent():
     filter_.filter(record)
     assert record.levelno == logging.DEBUG
 
+
 def test_shift_fullmatch():
     """
     If the name matches exactly, we should shift
@@ -57,6 +62,7 @@ def test_shift_fullmatch():
     record = SimpleRecord(name="a.b.c", level=logging.DEBUG)
     filter_.filter(record)
     assert record.levelno == logging.INFO
+
 
 def test_shift_child():
     """
@@ -67,6 +73,7 @@ def test_shift_child():
     filter_.filter(record)
     assert record.levelno == logging.INFO
 
+
 def test_shift_reversed():
     """
     We should also allow shifting in reverse.
@@ -75,6 +82,7 @@ def test_shift_reversed():
     record = SimpleRecord(name="a.b.c", level=logging.INFO)
     filter_.filter(record)
     assert record.levelno == logging.DEBUG
+
 
 def test_shift_fine_grained():
     """
@@ -86,6 +94,7 @@ def test_shift_fine_grained():
     filter_.filter(record)
     assert record.levelno == 2
 
+
 def test_shift_min():
     """
     We should never go below level.NOTSET
@@ -95,6 +104,7 @@ def test_shift_min():
     filter_.filter(record)
     assert record.levelno == logging.NOTSET
 
+
 def test_shift_max():
     """
     We also stop above logging.CRITICAL
@@ -103,6 +113,7 @@ def test_shift_max():
     record = SimpleRecord(name="a.b.c", level=logging.CRITICAL)
     filter_.filter(record)
     assert record.levelno == logging.CRITICAL
+
 
 def test_shift_custom_min():
     """
@@ -114,6 +125,7 @@ def test_shift_custom_min():
     filter_.filter(record)
     assert record.levelno == logging.INFO
 
+
 def test_shift_custom_max():
     """
     The user should have the option to refuse shifting above a certain
@@ -124,6 +136,7 @@ def test_shift_custom_max():
     filter_.filter(record)
     assert record.levelno == logging.ERROR
 
+
 def test_shift_custom_min_outside_bounds():
     """
     We allow specifying a custom min value outside of the "standard" bounds.
@@ -132,6 +145,7 @@ def test_shift_custom_min_outside_bounds():
     record = SimpleRecord(name="a.b.c", level=logging.NOTSET)
     filter_.filter(record)
     assert record.levelno == -10
+
 
 def test_shift_custom_max_outside_bounds():
     """
@@ -146,7 +160,7 @@ def test_shift_custom_max_outside_bounds():
 def test_attached_to_handler(reset_logging):
     blob = io.StringIO()
     handler = logging.StreamHandler(blob)
-    handler.setFormatter(logging.Formatter(u"%(levelno)s %(levelname)s %(msg)s"))
+    handler.setFormatter(logging.Formatter("%(levelno)s %(levelname)s %(msg)s"))
     handler.addFilter(ShiftingFilter(-1))
     logger_c = logging.getLogger("a.b.c")
     logger_d = logging.getLogger("a.b.d")
@@ -154,23 +168,24 @@ def test_attached_to_handler(reset_logging):
     logger_parent.setLevel(logging.DEBUG)
     logger_parent.addHandler(handler)
 
-    logger_c.error(u"error - c")
-    logger_d.info(u"info - d")
-    logger_d.debug(u"debug - d")
+    logger_c.error("error - c")
+    logger_d.info("info - d")
+    logger_d.debug("debug - d")
 
     lines = blob.getvalue().splitlines()
 
     expected = [
-        u"30 WARNING error - c",
-        u"10 DEBUG info - d",
-        u"0 NOTSET debug - d",
+        "30 WARNING error - c",
+        "10 DEBUG info - d",
+        "0 NOTSET debug - d",
     ]
     assert lines == expected
+
 
 def test_attached_to_logger(reset_logging):
     blob = io.StringIO()
     handler = logging.StreamHandler(blob)
-    handler.setFormatter(logging.Formatter(u"%(levelno)s %(levelname)s %(msg)s"))
+    handler.setFormatter(logging.Formatter("%(levelno)s %(levelname)s %(msg)s"))
 
     logger_c = logging.getLogger("a.b.c")
     logger_d = logging.getLogger("a.b.d")
@@ -181,17 +196,17 @@ def test_attached_to_logger(reset_logging):
     filter = ShiftingFilter(-1)
     filter.inject("a")
 
-    logger_c.error(u"error - c")
-    logger_d.info(u"info - d")
-    logger_d.debug(u"debug - d")
+    logger_c.error("error - c")
+    logger_d.info("info - d")
+    logger_d.debug("debug - d")
 
     filter.cleanup()
 
     lines = blob.getvalue().splitlines()
 
     expected = [
-        u"30 WARNING error - c",
-        u"10 DEBUG info - d",
-        u"0 NOTSET debug - d",
+        "30 WARNING error - c",
+        "10 DEBUG info - d",
+        "0 NOTSET debug - d",
     ]
     assert lines == expected
