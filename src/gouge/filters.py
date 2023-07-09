@@ -43,7 +43,12 @@ class ShiftingFilter:
     """
 
     def __init__(
-        self, shift_by=0, logger="", min=logging.NOTSET, max=logging.CRITICAL, offset=0
+        self,
+        shift_by=0,
+        logger="",
+        min=logging.NOTSET,
+        max=logging.CRITICAL,
+        offset=0,
     ):
         # type: (int, str, int, int, int) -> None
         if offset and shift_by:
@@ -82,7 +87,9 @@ class ShiftingFilter:
             parent = parent.name
         items = logging.Logger.manager.loggerDict.items()  # type: ignore
         for name, logger in items:
-            if name.startswith(parent) and not isinstance(logger, logging.PlaceHolder):
+            if name.startswith(parent) and not isinstance(
+                logger, logging.PlaceHolder
+            ):
                 logger.addFilter(self)
                 self.injected_loggers.add(logger)
 

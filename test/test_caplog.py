@@ -1,7 +1,5 @@
 import logging
 
-import pytest
-
 from gouge.colourcli import Simple
 
 

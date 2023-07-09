@@ -23,7 +23,11 @@ class Simple(logging.Formatter):
 
     @staticmethod
     def basicConfig(
-        show_exc=True, show_threads=False, force_styling=False, show_pid=False, **kwargs
+        show_exc=True,
+        show_threads=False,
+        force_styling=False,
+        show_pid=False,
+        **kwargs,
     ):
         # type: (bool, bool, bool, bool, Any) -> List[Handler]
         """
@@ -53,7 +57,9 @@ class Simple(logging.Formatter):
             if stream_name not in ("<stderr>", "<stdout>"):
                 continue
 
-            handler.setFormatter(Simple(show_exc, show_threads, show_pid=show_pid))
+            handler.setFormatter(
+                Simple(show_exc, show_threads, show_pid=show_pid)
+            )
             output.append(handler)
         return output
 
@@ -110,7 +116,9 @@ class Simple(logging.Formatter):
             message_items.insert(0, "{threadName:<10}")
 
         if self.show_pid:
-            message_items.insert(0, "{s.BRIGHT}[PID: {process:<5}]{s.RESET_ALL}")
+            message_items.insert(
+                0, "{s.BRIGHT}[PID: {process:<5}]{s.RESET_ALL}"
+            )
 
         message_template = " ".join(message_items)
 
@@ -126,7 +134,9 @@ class Simple(logging.Formatter):
 
             exc_text = getattr(record, "exc_text", "")
             if exc_text:
-                message_template += self.colorised_exception(record.levelno, exc_text)
+                message_template += self.colorised_exception(
+                    record.levelno, exc_text
+                )
 
         return message_template.format(
             levelcolor=colorize, f=clr.Fore, s=clr.Style, **vars(record)
