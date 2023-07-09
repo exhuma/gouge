@@ -4,7 +4,7 @@ This module contains everything needed to emit colourful messages on the CLI
 import logging
 import sys
 from logging import Handler, LogRecord
-from typing import Any, List, Literal, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 import colorama as clr
 
@@ -71,7 +71,7 @@ class Simple(logging.Formatter):
         self,
         fmt: Optional[str] = None,
         datefmt: Optional[str] = None,
-        style: Literal["%", "{", "$"] = "%",
+        style: str = "%",
         validate: bool = True,
         *,
         defaults: Optional[Mapping[str, Any]] = None,
