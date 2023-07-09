@@ -34,7 +34,9 @@ Repository = "https://github.com/exhuma/gouge"
 
 [project.optional-dependencies]
 dev = []
-test = []
+test = [
+    "pytest"
+]
 
 [tool.black]
 line_length = 80
