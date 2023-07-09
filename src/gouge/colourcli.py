@@ -83,7 +83,7 @@ class Simple(logging.Formatter):
         python_310_args = {"defaults": defaults, "validate": validate}
         if sys.version_info < (3, 10):
             python_310_args.pop("defaults")
-        if sys.version_info < (3, 7):
+        if sys.version_info < (3, 8):
             python_310_args.pop("validate")
         super().__init__(fmt, datefmt, style, **python_310_args)
         self.show_threads = show_threads
