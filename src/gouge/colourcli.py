@@ -2,6 +2,7 @@
 This module contains everything needed to emit colourful messages on the CLI
 """
 import logging
+import sys
 from logging import Handler, LogRecord
 from typing import Any, List, Literal, Mapping, Optional
 
@@ -79,7 +80,10 @@ class Simple(logging.Formatter):
         force_styling: bool = False,
         show_pid: bool = False,
     ):
-        super().__init__(fmt, datefmt, style, validate, defaults=defaults)
+        python_310_args = {"defaults": defaults}
+        if sys.version_info < (3, 10):
+            python_310_args = {}
+        super().__init__(fmt, datefmt, style, validate, **python_310_args)
         self.show_threads = show_threads
         self.show_exc = show_exc
         self.force_styling = force_styling
