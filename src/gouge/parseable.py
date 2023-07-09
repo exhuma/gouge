@@ -30,22 +30,20 @@ class CSVLog(logging.Formatter):
     """
 
     @staticmethod
-    def basicConfig(**kwargs):
-        # type: (Any) -> None
+    def basicConfig(**kwargs: Any) -> None:
         logging.basicConfig(**kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
             handler.setFormatter(CSVLog())
 
-    def __init__(self, fmt=None, datefmt=None):
-        # type: (Optional[str], Optional[str]) -> None
+    def __init__(
+        self, fmt: Optional[str] = None, datefmt: Optional[str] = None
+    ) -> None:
         logging.Formatter.__init__(self, fmt, datefmt)
         self.buffer = io.StringIO()
         self.writer = csv.writer(self.buffer)
 
-    def format(self, record):
-        # type: (logging.LogRecord) -> str
-
+    def format(self, record: logging.LogRecord) -> str:
         record.message = record.getMessage()
 
         if record.exc_info:
@@ -53,7 +51,7 @@ class CSVLog(logging.Formatter):
             # (it's constant anyway)
             exc_text = getattr(record, "exc_text", "")
             if not exc_text:
-                record.exc_text = self.formatException(record.exc_info)  # type: ignore
+                record.exc_text = self.formatException(record.exc_info)
 
         exc_text = getattr(record, "exc_text", "")
         message_items = [
@@ -111,23 +109,21 @@ class XMLLog(logging.Formatter):
     """
 
     @staticmethod
-    def basicConfig(**kwargs):
-        # type: (Any) -> None
+    def basicConfig(**kwargs: Any) -> None:
         logging.basicConfig(**kwargs)
         root = logging.getLogger()
         for handler in root.handlers:
             handler.setFormatter(XMLLog())
 
-    def __init__(self, fmt=None, datefmt=None):
-        # type: (Optional[str], Optional[str]) -> None
+    def __init__(
+        self, fmt: Optional[str] = None, datefmt: Optional[str] = None
+    ) -> None:
         logging.Formatter.__init__(self, fmt, datefmt)
-        from xml.dom.minidom import Document  # type: ignore
+        from xml.dom.minidom import Document
 
         self.doc = Document()
 
-    def format(self, record):
-        # type: (logging.LogRecord) -> str
-
+    def format(self, record: logging.LogRecord) -> str:
         record.message = record.getMessage()
 
         if record.exc_info:
@@ -135,7 +131,7 @@ class XMLLog(logging.Formatter):
             # (it's constant anyway)
             exc_text = getattr(record, "exc_text", "")
             if not exc_text:
-                record.exc_text = self.formatException(record.exc_info)  # type: ignore
+                record.exc_text = self.formatException(record.exc_info)
 
         exc_text = getattr(record, "exc_text", "")
         message_items = [
@@ -163,5 +159,5 @@ class XMLLog(logging.Formatter):
             subelement = self.doc.createElement(tagname)
             subelement.appendChild(self.doc.createTextNode(str(value)))
             element.appendChild(subelement)
-        output = element.toxml()  # type: str
+        output: str = element.toxml()
         return output

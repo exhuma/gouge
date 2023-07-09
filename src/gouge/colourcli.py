@@ -23,13 +23,12 @@ class Simple(logging.Formatter):
 
     @staticmethod
     def basicConfig(
-        show_exc=True,
-        show_threads=False,
-        force_styling=False,
-        show_pid=False,
-        **kwargs,
-    ):
-        # type: (bool, bool, bool, bool, Any) -> List[Handler]
+        show_exc: bool = True,
+        show_threads: bool = False,
+        force_styling: bool = False,
+        show_pid: bool = False,
+        **kwargs: Any,
+    ) -> List[Handler]:
         """
         Convenience method to have a one-liner set-up.
 
@@ -86,8 +85,7 @@ class Simple(logging.Formatter):
         self.force_styling = force_styling
         self.show_pid = show_pid
 
-    def colorised_exception(self, level, exc_text):
-        # type: (int, str) -> str
+    def colorised_exception(self, level: int, exc_text: str) -> str:
         """
         Colorises the exception text based on log level
         """
@@ -97,8 +95,7 @@ class Simple(logging.Formatter):
             output = "\n{f.WHITE}{s.DIM}{exc_text}{s.RESET_ALL}"
         return output
 
-    def format(self, record):
-        # type: (LogRecord) -> str
+    def format(self, record: LogRecord) -> str:
         if record.levelno <= logging.DEBUG:
             colorize = clr.Style.BRIGHT + clr.Fore.BLACK
         elif record.levelno <= logging.INFO:
@@ -135,9 +132,7 @@ class Simple(logging.Formatter):
                 # (it's constant anyway)
                 exc_text = getattr(record, "exc_text", "")
                 if not exc_text:
-                    record.exc_text = self.formatException(  # type: ignore
-                        record.exc_info
-                    )
+                    record.exc_text = self.formatException(record.exc_info)
 
             exc_text = getattr(record, "exc_text", "")
             if exc_text:
