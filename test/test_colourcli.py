@@ -59,3 +59,32 @@ def test_show_pid():
     formatter = Simple(show_pid=True)
     output = formatter.format(record)
     assert re.search(r"\[PID: \d+\s*\]", output)
+
+
+def test_dictconfig():
+    """
+    Ensure that we can configure loggers with dictConfig while using gouge
+    """
+    config = {
+        "version": 1,
+        "formatters": {
+            "simple": {
+                "class": "gouge.colourcli.Simple",
+            },
+        },
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "simple",
+            },
+        },
+        "loggers": {
+            "": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+            },
+        },
+    }
+    import logging.config
+
+    logging.config.dictConfig(config)

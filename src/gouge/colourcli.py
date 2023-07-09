@@ -65,15 +65,19 @@ class Simple(logging.Formatter):
 
     def __init__(
         self,
-        show_exc=False,
-        show_threads=False,
         fmt=None,
         datefmt=None,
+        style="%",
+        validate=True,
+        *,
+        defaults=None,
+        show_exc=False,
+        show_threads=False,
         force_styling=False,
         show_pid=False,
     ):
         # type: (bool, bool, Optional[str], Optional[str], bool, bool) -> None
-        logging.Formatter.__init__(self, fmt, datefmt)
+        super().__init__(fmt, datefmt, style, validate, defaults=defaults)
         self.show_threads = show_threads
         self.show_exc = show_exc
         self.force_styling = force_styling

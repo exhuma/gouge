@@ -119,6 +119,48 @@ Manual Usage
     LOG.error('hello')
 
 
+Usage with dictConfig
+---------------------
+
+When using ``dictConfig``, you can use the ``gouge.colourcli.Simple`` formatter as class:
+
+.. code-block:: python
+
+    import logging
+
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "myFormatter": {
+                "()": "gouge.colourcli.Simple",
+                "show_exc": True,
+                "show_threads": True,
+                "show_pid": True,
+            },
+        },
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "myFormatter",
+            },
+        },
+        "loggers": {
+            "": {
+                "handlers": ["console"],
+                'level": "DEBUG",
+            },
+        },
+    }
+
+    logging.config.dictConfig(LOGGING)
+    logging.debug("hello")
+    logging.info("hello")
+    logging.warning("hello")
+    logging.error("hello")
+
+
+
 Caveats
 =======
 
