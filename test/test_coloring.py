@@ -2,7 +2,6 @@ import logging
 from logging import LogRecord
 
 import pytest
-
 from gouge.colourcli import Simple
 
 
