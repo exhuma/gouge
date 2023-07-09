@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gouge"
-version = "1.5.0.post1"
+version = "2.0"
 authors = [
     {name = "Michel Albert", email = "michel@albert.lu"},
 ]
