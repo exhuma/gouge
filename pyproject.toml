@@ -33,7 +33,9 @@ dependencies = [
 Repository = "https://github.com/exhuma/gouge"
 
 [project.optional-dependencies]
-dev = []
+dev = [
+    "furo",
+]
 test = [
     "pytest"
 ]
