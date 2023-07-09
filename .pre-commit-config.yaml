@@ -21,3 +21,8 @@ repos:
     rev: v1.0.0
     hooks:
       - id: prevent-debug-markers
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.277
+    hooks:
+      - id: ruff
+        args: ["src"]
