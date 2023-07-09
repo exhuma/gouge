@@ -3,7 +3,7 @@ This module contains everything needed to emit colourful messages on the CLI
 """
 import logging
 from logging import Handler, LogRecord
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Mapping, Optional
 
 import colorama as clr
 
@@ -58,25 +58,28 @@ class Simple(logging.Formatter):
                 continue
 
             handler.setFormatter(
-                Simple(show_exc, show_threads, show_pid=show_pid)
+                Simple(
+                    show_exc=show_exc,
+                    show_threads=show_threads,
+                    show_pid=show_pid,
+                )
             )
             output.append(handler)
         return output
 
     def __init__(
         self,
-        fmt=None,
-        datefmt=None,
-        style="%",
-        validate=True,
+        fmt: Optional[str] = None,
+        datefmt: Optional[str] = None,
+        style: Literal["%", "{", "$"] = "%",
+        validate: bool = True,
         *,
-        defaults=None,
-        show_exc=False,
-        show_threads=False,
-        force_styling=False,
-        show_pid=False,
+        defaults: Optional[Mapping[str, Any]] = None,
+        show_exc: bool = False,
+        show_threads: bool = False,
+        force_styling: bool = False,
+        show_pid: bool = False,
     ):
-        # type: (bool, bool, Optional[str], Optional[str], bool, bool) -> None
         super().__init__(fmt, datefmt, style, validate, defaults=defaults)
         self.show_threads = show_threads
         self.show_exc = show_exc

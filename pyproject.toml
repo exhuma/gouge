@@ -35,6 +35,7 @@ Repository = "https://github.com/exhuma/gouge"
 [project.optional-dependencies]
 dev = [
     "furo",
+    "types-colorama",
 ]
 test = [
     "pytest"

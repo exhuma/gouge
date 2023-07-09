@@ -6,7 +6,7 @@ from typing import Set
 from warnings import warn
 
 
-class ShiftingFilter:
+class ShiftingFilter(logging.Filter):
     """
     This filter will shift the logging level of log records a certain number of
     log levels.
