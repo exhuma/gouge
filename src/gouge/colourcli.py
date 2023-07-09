@@ -2,8 +2,9 @@
 This module contains everything needed to emit colourful messages on the CLI
 """
 import logging
+import sys
 from logging import Handler, LogRecord
-from typing import Any, List, Optional
+from typing import Any, List, Mapping, Optional
 
 import colorama as clr
 
@@ -23,9 +24,12 @@ class Simple(logging.Formatter):
 
     @staticmethod
     def basicConfig(
-        show_exc=True, show_threads=False, force_styling=False, show_pid=False, **kwargs
-    ):
-        # type: (bool, bool, bool, bool, Any) -> List[Handler]
+        show_exc: bool = True,
+        show_threads: bool = False,
+        force_styling: bool = False,
+        show_pid: bool = False,
+        **kwargs: Any,
+    ) -> List[Handler]:
         """
         Convenience method to have a one-liner set-up.
 
@@ -53,28 +57,41 @@ class Simple(logging.Formatter):
             if stream_name not in ("<stderr>", "<stdout>"):
                 continue
 
-            handler.setFormatter(Simple(show_exc, show_threads, show_pid=show_pid))
+            handler.setFormatter(
+                Simple(
+                    show_exc=show_exc,
+                    show_threads=show_threads,
+                    show_pid=show_pid,
+                )
+            )
             output.append(handler)
         return output
 
     def __init__(
         self,
-        show_exc=False,
-        show_threads=False,
-        fmt=None,
-        datefmt=None,
-        force_styling=False,
-        show_pid=False,
+        fmt: Optional[str] = None,
+        datefmt: Optional[str] = None,
+        style: str = "%",
+        validate: bool = True,
+        *,
+        defaults: Optional[Mapping[str, Any]] = None,
+        show_exc: bool = False,
+        show_threads: bool = False,
+        force_styling: bool = False,
+        show_pid: bool = False,
     ):
-        # type: (bool, bool, Optional[str], Optional[str], bool, bool) -> None
-        logging.Formatter.__init__(self, fmt, datefmt)
+        python_310_args = {"defaults": defaults, "validate": validate}
+        if sys.version_info < (3, 10):
+            python_310_args.pop("defaults")
+        if sys.version_info < (3, 8):
+            python_310_args.pop("validate")
+        super().__init__(fmt, datefmt, style, **python_310_args)
         self.show_threads = show_threads
         self.show_exc = show_exc
         self.force_styling = force_styling
         self.show_pid = show_pid
 
-    def colorised_exception(self, level, exc_text):
-        # type: (int, str) -> str
+    def colorised_exception(self, level: int, exc_text: str) -> str:
         """
         Colorises the exception text based on log level
         """
@@ -84,8 +101,7 @@ class Simple(logging.Formatter):
             output = "\n{f.WHITE}{s.DIM}{exc_text}{s.RESET_ALL}"
         return output
 
-    def format(self, record):
-        # type: (LogRecord) -> str
+    def format(self, record: LogRecord) -> str:
         if record.levelno <= logging.DEBUG:
             colorize = clr.Style.BRIGHT + clr.Fore.BLACK
         elif record.levelno <= logging.INFO:
@@ -110,7 +126,9 @@ class Simple(logging.Formatter):
             message_items.insert(0, "{threadName:<10}")
 
         if self.show_pid:
-            message_items.insert(0, "{s.BRIGHT}[PID: {process:<5}]{s.RESET_ALL}")
+            message_items.insert(
+                0, "{s.BRIGHT}[PID: {process:<5}]{s.RESET_ALL}"
+            )
 
         message_template = " ".join(message_items)
 
@@ -120,13 +138,13 @@ class Simple(logging.Formatter):
                 # (it's constant anyway)
                 exc_text = getattr(record, "exc_text", "")
                 if not exc_text:
-                    record.exc_text = self.formatException(  # type: ignore
-                        record.exc_info
-                    )
+                    record.exc_text = self.formatException(record.exc_info)
 
             exc_text = getattr(record, "exc_text", "")
             if exc_text:
-                message_template += self.colorised_exception(record.levelno, exc_text)
+                message_template += self.colorised_exception(
+                    record.levelno, exc_text
+                )
 
         return message_template.format(
             levelcolor=colorize, f=clr.Fore, s=clr.Style, **vars(record)

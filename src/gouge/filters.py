@@ -6,7 +6,7 @@ from typing import Set
 from warnings import warn
 
 
-class ShiftingFilter:
+class ShiftingFilter(logging.Filter):
     """
     This filter will shift the logging level of log records a certain number of
     log levels.
@@ -43,9 +43,13 @@ class ShiftingFilter:
     """
 
     def __init__(
-        self, shift_by=0, logger="", min=logging.NOTSET, max=logging.CRITICAL, offset=0
-    ):
-        # type: (int, str, int, int, int) -> None
+        self,
+        shift_by: int = 0,
+        logger: str = "",
+        min: int = logging.NOTSET,
+        max: int = logging.CRITICAL,
+        offset: int = 0,
+    ) -> None:
         if offset and shift_by:
             warn(
                 'You specified both "offset" and "shift_by"! "shift_by" '
@@ -60,10 +64,9 @@ class ShiftingFilter:
         self.logger = logger
         self.max = max
         self.min = min
-        self.injected_loggers = set()  # type: Set[logging.Logger]
+        self.injected_loggers: Set[logging.Logger] = set()
 
-    def inject(self, parent):
-        # type: (str) -> None
+    def inject(self, parent: str) -> None:
         """
         Loop over each known logger and attach this filter.
 
@@ -80,22 +83,22 @@ class ShiftingFilter:
         """
         if not isinstance(parent, str):
             parent = parent.name
-        items = logging.Logger.manager.loggerDict.items()  # type: ignore
+        items = logging.Logger.manager.loggerDict.items()
         for name, logger in items:
-            if name.startswith(parent) and not isinstance(logger, logging.PlaceHolder):
+            if name.startswith(parent) and not isinstance(
+                logger, logging.PlaceHolder
+            ):
                 logger.addFilter(self)
                 self.injected_loggers.add(logger)
 
-    def cleanup(self):
-        # type: () -> None
+    def cleanup(self) -> None:
         """
         Remove all filters applied via :py:meth:`~.ShiftingFilter.inject`.
         """
         for logger in self.injected_loggers:
-            logger.removeFilter(self)  # type: ignore
+            logger.removeFilter(self)
 
-    def filter(self, record):
-        # type: (logging.LogRecord) -> bool
+    def filter(self, record: logging.LogRecord) -> bool:
         """
         Always returns *True* but will modify the logging level of *record* by
         the rules defined in this filter.

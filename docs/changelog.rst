@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 2.0
+-----------
+
+* Make the ``gouge.colourcli.Simple`` constructor fully compatible with
+  ``logging.Formatter``.
+
+  This changes the order of arguments passed into ``Simple()`` which is why
+  this is a major release.
+* Overall modernisation of the code-base, packaging and release procedure.
+
 Version 1.5.0
 -------------
 
