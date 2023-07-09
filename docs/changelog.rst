@@ -4,7 +4,8 @@ Changelog
 Version 1.5.0.post2
 -------------
 
-* Mark 1.x as deprecated
+* Mark gouge 1.x as deprecated
+* Drop support for Python 3.6
 
 Version 1.5.0
 -------------
