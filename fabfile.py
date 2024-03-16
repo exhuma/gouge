@@ -1,13 +1,24 @@
-import fabric.api as fab
+# type: ignore
+from fabric import task
 
 
-@fab.task
-def doc():
-    fab.local("./env/bin/sphinx-build " "docs " "docs/_build/html")
+@task
+def doc(context):
+    context.run("./env/bin/sphinx-build " "docs " "docs/_build/html")
 
 
-@fab.task
-def publish():
-    fab.local("./env/bin/python setup.py sdist bdist_wheel")
-    fab.local("./env/bin/twine upload dist/*")
-    fab.local("rm -rf dist")
+@task
+def publish(context):
+    context.run("./env/bin/python setup.py sdist bdist_wheel")
+    context.run("./env/bin/twine upload dist/*")
+    context.run("rm -rf dist")
+
+
+@task
+def develop(context):
+    context.run(
+        "[ -d env ] || python3 -m venv env", replace_env=False, pty=True
+    )
+    context.run(
+        "./env/bin/pip install -e .[dev,test,doc]", replace_env=False, pty=True
+    )
