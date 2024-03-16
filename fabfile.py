@@ -4,7 +4,17 @@ from fabric import task
 
 @task
 def doc(context):
-    context.run("./env/bin/sphinx-build " "docs " "docs/_build/html")
+    context.run("rm -rf docs/api", pty=True, replace_env=False)
+    context.run(
+        "./env/bin/sphinx-apidoc -o docs/api src/gouge",
+        pty=True,
+        replace_env=False,
+    )
+    context.run(
+        "./env/bin/sphinx-build docs docs/_build/html",
+        pty=True,
+        replace_env=False,
+    )
 
 
 @task

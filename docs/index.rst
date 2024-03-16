@@ -231,8 +231,8 @@ Pre-formatters for a logger are applied in sequence.
 Using Pre-Formatters With dictConfig
 -------------------------------------
 
-When using :py:func:`logging.config.dictConfig`,
-you can provide a subclass of ``Simple()`` as so:
+When using :py:func:`logging.config.dictConfig`, you can provide a subclass of
+``Simple()`` as so:
 
 .. code-block:: python
     :caption: Pre-Formatter for log-config files
@@ -268,7 +268,7 @@ Module Contents
    :maxdepth: 4
 
    changelog
-   api
+   API <api/modules>
 
 
 Indices and tables
