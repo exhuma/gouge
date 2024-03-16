@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 2.1
+-----------
+
+* Added support for pre-formatters.
+* Provide bundled pre-formatter for ``uvicorn.access`` via
+  ``gouge.preformatters``
+
 Version 2.0
 -----------
 
