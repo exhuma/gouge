@@ -1,10 +1,11 @@
 """
 This module contains everything needed to emit colourful messages on the CLI
 """
+
 import logging
 import sys
 from logging import Handler, LogRecord
-from typing import Any, List, Mapping, Optional
+from typing import Any, Callable, List, Mapping, Optional
 
 import colorama as clr
 
@@ -21,6 +22,8 @@ class Simple(logging.Formatter):
         tracebacks on the console, you can override this setting using
         *show_exc*.
     """
+
+    pre_formatters: dict[str, list[Callable[[str], str]]]
 
     @staticmethod
     def basicConfig(
@@ -79,6 +82,7 @@ class Simple(logging.Formatter):
         show_threads: bool = False,
         force_styling: bool = False,
         show_pid: bool = False,
+        pre_formatters: Optional[dict[str, list[Callable[[str], str]]]] = None,
     ):
         python_310_args = {"defaults": defaults, "validate": validate}
         if sys.version_info < (3, 10):
@@ -90,6 +94,7 @@ class Simple(logging.Formatter):
         self.show_exc = show_exc
         self.force_styling = force_styling
         self.show_pid = show_pid
+        self.pre_formatters = pre_formatters or {}
 
     def colorised_exception(self, level: int, exc_text: str) -> str:
         """
@@ -113,7 +118,10 @@ class Simple(logging.Formatter):
         else:
             colorize = clr.Style.BRIGHT + clr.Fore.YELLOW + clr.Back.RED
 
-        record.message = record.getMessage()
+        message = record.getMessage()
+        for pre_formatter in self.pre_formatters.get(record.name, []):
+            message = pre_formatter(message)
+        record.message = message
         record.asctime = self.formatTime(record, self.datefmt or "")
 
         message_items = [
