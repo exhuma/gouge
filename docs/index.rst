@@ -181,6 +181,86 @@ As sort of a "demo", I also added :py:class:`~gouge.parseable.CSVLog` and
 :py:class:`~gouge.parseable.XMLLog`.
 
 
+Pre-Formatters
+==============
+
+.. versionadded:: 2.1
+
+To modify the message-string *before* it is formatted by *gouge* you can pass
+the ``pre_formatters`` argument to the :py:class:`gouge.colourcli.Simple`
+constructor.
+
+This can turn something like this:
+
+.. figure:: _static/pre-formatter-not-applied.png
+    :alt: Pre-Formatter not applied
+
+    This shows the default output. The "message" has a single color.
+
+into this:
+
+.. figure:: _static/pre-formatter-applied.png
+    :alt: Pre-Formatter applied
+
+    This shows an output with a custom formatter applied to the message alone.
+
+Gouge comes (at the time of this writing) with a bundled formatter for the
+``uvicorn.access`` logger (as displayed above). See
+:py:mod:`gouge.preformatters` for a sample implementation.
+
+
+Applying Pre-Formatters
+-----------------------
+
+Pre-formatters are passed as a dictionary mapping from logger-names to
+a list of formatting functions (callables). The functions take the raw message
+as input and must return the formatted message.
+
+Pre-formatters for a logger are applied in sequence.
+
+.. code-block:: python
+    :caption: Pre-Formatter Example
+
+    from gouge.colourcli import Simple
+
+    def my_preformatter(message: str) -> str:
+        return message.upper()
+
+    my_log_formatter = Simple(pre_formatters={"my.logger": [my_preformatter]})
+
+Using Pre-Formatters With dictConfig
+-------------------------------------
+
+When using :py:func:`logging.config.dictConfig`,
+you can provide a subclass of ``Simple()`` as so:
+
+.. code-block:: python
+    :caption: Pre-Formatter for log-config files
+
+    class MyFormatter(Simple):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs, pre_formatters={...})
+
+
+and then use it in the log-config as so:
+
+.. code-block:: yaml
+    :caption: Example config for dictConfig
+
+    version: 1
+    handlers:
+    root:
+      level: DEBUG
+      handlers:
+        - console
+    console:
+      class : logging.StreamHandler
+      formatter: gouge
+    formatters:
+      gouge:
+        class: "my.module.MyFormatter"
+
+
 Module Contents
 ===============
 
