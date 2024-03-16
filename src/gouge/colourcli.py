@@ -5,7 +5,7 @@ This module contains everything needed to emit colourful messages on the CLI
 import logging
 import sys
 from logging import Handler, LogRecord
-from typing import Any, Callable, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import colorama as clr
 
@@ -23,7 +23,7 @@ class Simple(logging.Formatter):
         *show_exc*.
     """
 
-    pre_formatters: dict[str, List[Callable[[str], str]]]
+    pre_formatters: Dict[str, List[Callable[[str], str]]]
 
     @staticmethod
     def basicConfig(
@@ -82,7 +82,7 @@ class Simple(logging.Formatter):
         show_threads: bool = False,
         force_styling: bool = False,
         show_pid: bool = False,
-        pre_formatters: Optional[dict[str, List[Callable[[str], str]]]] = None,
+        pre_formatters: Optional[Dict[str, List[Callable[[str], str]]]] = None,
     ):
         python_310_args = {"defaults": defaults, "validate": validate}
         if sys.version_info < (3, 10):
