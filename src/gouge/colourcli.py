@@ -170,8 +170,8 @@ class Simple(logging.Formatter):
 
     def formatException(self, exc_info: tuple) -> str:
         exc_text = super().formatException(exc_info)
-        if '{' in exc_text or '}' in exc_text:
-            exc_text = exc_text.replace('{', '{{').replace('}', '}}')
+        if "{" in exc_text or "}" in exc_text:
+            exc_text = exc_text.replace("{", "{{").replace("}", "}}")
         if self.highlighted_path is None:
             return exc_text
 
