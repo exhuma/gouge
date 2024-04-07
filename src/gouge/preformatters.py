@@ -1,8 +1,11 @@
 import re
+
 from gouge.colourcli import clr
 
 P_UVICORN_ACCESS = re.compile(
-    r'^(?P<remote_host>\S+) - "(?P<method>GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) (?P<path>\S+) (?P<http>\S+)" (?P<status>\d+)'
+    r'^(?P<remote_host>\S+) - "'
+    r"(?P<method>GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS) "
+    r'(?P<path>\S+) (?P<http>\S+)" (?P<status>\d+)'
 )
 METHOD_COLORS = {
     "GET": clr.Fore.GREEN,
