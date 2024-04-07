@@ -1,6 +1,16 @@
 Changelog
 =========
 
+Version 2.2
+-----------
+
+* Provide new keyword-argument ``highlighted_path`` to visually distinguish
+  traceback elements which are path of a subtree. It defaults to
+  ``<current-working-directory>/src`` if it exists.
+
+  This helps reading tracebacks when using complex frameworks (like SQLAlchemy,
+  Flask, Starlette, ...).
+
 Version 2.1
 -----------
 
