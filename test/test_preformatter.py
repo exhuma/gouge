@@ -1,8 +1,10 @@
-from logging import LogRecord
-import pytest
 import logging
-from gouge.colourcli import Simple
+from logging import LogRecord
+
+import pytest
+
 from gouge import preformatters as pf
+from gouge.colourcli import Simple
 
 
 def _dummy_preformatter(message: str) -> str:
