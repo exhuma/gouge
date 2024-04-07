@@ -3,11 +3,15 @@ This module contains everything needed to emit colourful messages on the CLI
 """
 
 import logging
+import re
 import sys
 from logging import Handler, LogRecord
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import colorama as clr
+
+P_FILENAME = re.compile(r"File \"([^\"]+)\", line (\d+), in ([^\s]+)")
 
 
 class Simple(logging.Formatter):
@@ -31,6 +35,7 @@ class Simple(logging.Formatter):
         show_threads: bool = False,
         force_styling: bool = False,
         show_pid: bool = False,
+        highlighted_path: Optional[Path] = None,
         **kwargs: Any,
     ) -> List[Handler]:
         """
@@ -39,6 +44,11 @@ class Simple(logging.Formatter):
         *show_exc*, *show_threads*, *show_pid* and *force_styling* are directly
         passed to :py:class:`~.Simple`. The remaining *kwargs* are passed on to
         :py:func:`logging.basicConfig`.
+
+        If *highlighted_path* is set, it will highlight local filenames in
+        tracebacks. This is useful if you want to highlight the current working
+        directory. If a "src" directory exists in the current working directory,
+        it will be used as the default.
 
         After returning from :py:func:`logging.basicConfig`, it will fetch the
         *stderr* and *stdout* handlers and replace the formatter.
@@ -65,6 +75,7 @@ class Simple(logging.Formatter):
                     show_exc=show_exc,
                     show_threads=show_threads,
                     show_pid=show_pid,
+                    highlighted_path=highlighted_path,
                 )
             )
             output.append(handler)
@@ -83,6 +94,7 @@ class Simple(logging.Formatter):
         force_styling: bool = False,
         show_pid: bool = False,
         pre_formatters: Optional[Dict[str, List[Callable[[str], str]]]] = None,
+        highlighted_path: Optional[Path] = None,
     ):
         python_310_args = {"defaults": defaults, "validate": validate}
         if sys.version_info < (3, 10):
@@ -95,16 +107,11 @@ class Simple(logging.Formatter):
         self.force_styling = force_styling
         self.show_pid = show_pid
         self.pre_formatters = pre_formatters or {}
-
-    def colorised_exception(self, level: int, exc_text: str) -> str:
-        """
-        Colorises the exception text based on log level
-        """
-        if level >= logging.ERROR:
-            output = "\n{f.RED}{exc_text}{s.RESET_ALL}"
+        self.highlighted_path = highlighted_path
+        if (Path.cwd() / "src").exists():
+            self.highlighted_path = Path.cwd() / "src"
         else:
-            output = "\n{f.WHITE}{s.DIM}{exc_text}{s.RESET_ALL}"
-        return output
+            self.highlighted_path = None
 
     def format(self, record: LogRecord) -> str:
         if record.levelno <= logging.DEBUG:
@@ -150,10 +157,32 @@ class Simple(logging.Formatter):
 
             exc_text = getattr(record, "exc_text", "")
             if exc_text:
-                message_template += self.colorised_exception(
-                    record.levelno, exc_text
-                )
+                if record.levelno >= logging.ERROR:
+                    message_template += "\n{f.RED}"
+                else:
+                    message_template += "\n{f.WHITE}{s.DIM}"
+                message_template += self.formatException(record.exc_info)
+                message_template += "{s.RESET_ALL}"
 
         return message_template.format(
             levelcolor=colorize, f=clr.Fore, s=clr.Style, **vars(record)
         )
+
+    def formatException(self, exc_info: tuple) -> str:
+        exc_text = super().formatException(exc_info)
+        if self.highlighted_path is None:
+            return exc_text
+
+        pth = self.highlighted_path
+
+        def highlight_local_filenames(match: re.Match) -> str:
+            filename = Path(match.group(1))
+            if filename.is_relative_to(pth):
+                return match.group(0).replace(
+                    match.group(1),
+                    f"{clr.Fore.YELLOW}{match.group(1)}{clr.Fore.RED}",
+                )
+            return match.group(0)
+
+        exc_text = P_FILENAME.sub(highlight_local_filenames, exc_text)
+        return exc_text
