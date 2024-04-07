@@ -11,6 +11,10 @@ Version 2.2
   This helps reading tracebacks when using complex frameworks (like SQLAlchemy,
   Flask, Starlette, ...).
 
+* [2.2.1] - fix: If the message or traceback contained Python string-template
+  variables the output could either break or cause incorrect output. This is
+  now fixed.
+
 Version 2.1
 -----------
 
