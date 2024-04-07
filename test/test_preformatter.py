@@ -1,6 +1,8 @@
 from logging import LogRecord
+import pytest
 import logging
 from gouge.colourcli import Simple
+from gouge import preformatters as pf
 
 
 def _dummy_preformatter(message: str) -> str:
@@ -22,3 +24,21 @@ def test_preformatter():
     instance = Simple(pre_formatters={"the.logger": [_dummy_preformatter]})
     result = instance.format(record)
     assert "modified-message" in result
+
+
+@pytest.mark.parametrize("status_code", ["100", "200", "300", "400", "500"])
+def test_uvicorn_access(status_code: str):
+    result = pf.uvicorn_access(
+        f'127.0.0.1:43522 - "GET /foo/bar HTTP/1.1" {status_code}'
+    )
+    assert "127.0.0.1:43522" in result
+    assert "-" in result
+    assert "GET" in result
+    assert "/foo/bar" in result
+    assert "HTTP/1.1" in result
+    assert str(status_code) in result
+
+
+def test_uvicorn_access_default():
+    result = pf.uvicorn_access("invalid-line-format")
+    assert result == "invalid-line-format"
