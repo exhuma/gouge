@@ -15,6 +15,8 @@ Version 2.2
   variables the output could either break or cause incorrect output. This is
   now fixed.
 
+* [2.2.2] - fix: Correctly initialise the "highlighted_path" value
+
 Version 2.1
 -----------
 

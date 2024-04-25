@@ -107,11 +107,10 @@ class Simple(logging.Formatter):
         self.force_styling = force_styling
         self.show_pid = show_pid
         self.pre_formatters = pre_formatters or {}
-        self.highlighted_path = highlighted_path
         if (Path.cwd() / "src").exists():
             self.highlighted_path = Path.cwd() / "src"
         else:
-            self.highlighted_path = None
+            self.highlighted_path = highlighted_path
 
     def format(self, record: LogRecord) -> str:
         if record.levelno <= logging.DEBUG:
