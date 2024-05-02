@@ -109,8 +109,10 @@ class Simple(logging.Formatter):
         self.pre_formatters = pre_formatters or {}
         if (Path.cwd() / "src").exists():
             self.highlighted_path = (Path.cwd() / "src").absolute()
-        else:
+        elif highlighted_path is not None:
             self.highlighted_path = (highlighted_path).absolute()
+        else:
+            self.highlighted_path = highlighted_path
 
     def format(self, record: LogRecord) -> str:
         if record.levelno <= logging.DEBUG:

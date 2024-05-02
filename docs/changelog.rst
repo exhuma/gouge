@@ -23,6 +23,8 @@ Version 2.2
 * [2.2.3] - fix: Path highlighting in exception messages should now work with
   absolute paths
 
+* [2.2.4] - fix: regression introduced in 2.23
+
 Version 2.1
 -----------
 
