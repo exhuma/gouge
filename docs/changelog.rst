@@ -20,6 +20,9 @@ Version 2.2
 * [2.2.2post1] - fix: Corrected the "preformatters" example from the
   documentation
 
+* [2.2.3] - fix: Path highlighting in exception messages should now work with
+  absolute paths
+
 Version 2.1
 -----------
 

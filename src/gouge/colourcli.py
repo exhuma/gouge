@@ -108,9 +108,9 @@ class Simple(logging.Formatter):
         self.show_pid = show_pid
         self.pre_formatters = pre_formatters or {}
         if (Path.cwd() / "src").exists():
-            self.highlighted_path = Path.cwd() / "src"
+            self.highlighted_path = (Path.cwd() / "src").absolute()
         else:
-            self.highlighted_path = highlighted_path
+            self.highlighted_path = (highlighted_path).absolute()
 
     def format(self, record: LogRecord) -> str:
         if record.levelno <= logging.DEBUG:
@@ -177,7 +177,7 @@ class Simple(logging.Formatter):
         pth = self.highlighted_path
 
         def highlight_local_filenames(match: re.Match) -> str:
-            filename = Path(match.group(1))
+            filename = Path(match.group(1)).absolute()
             if filename.is_relative_to(pth):
                 return match.group(0).replace(
                     match.group(1),
