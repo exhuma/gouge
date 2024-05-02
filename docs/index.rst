@@ -231,15 +231,26 @@ Pre-formatters for a logger are applied in sequence.
 Using Pre-Formatters With dictConfig
 -------------------------------------
 
+This example demostrates the use of the builtin ``uvicorn_access``
+pre-formatter.
+
 When using :py:func:`logging.config.dictConfig`, you can provide a subclass of
 ``Simple()`` as so:
 
 .. code-block:: python
     :caption: Pre-Formatter for log-config files
 
+    from gouge.preformatters import uvicorn_access
+
     class MyFormatter(Simple):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs, pre_formatters={...})
+            super().__init__(
+                *args,
+                pre_formatters={
+                    "uvicorn.access": [uvicorn_access]
+                },
+                **kwargs,
+            )
 
 
 and then use it in the log-config as so:
@@ -247,18 +258,30 @@ and then use it in the log-config as so:
 .. code-block:: yaml
     :caption: Example config for dictConfig
 
+    ---
     version: 1
-    handlers:
     root:
       level: DEBUG
       handlers:
         - console
-    console:
-      class : logging.StreamHandler
-      formatter: gouge
+    loggers:
+      # uvicorn loggers are pretty silent by default. We set some of them to INFO.
+      # This will make the messages (which are usfeul during development) appear in
+      # the console.
+      # uvicorn.error contains startup messages.
+      uvicorn.error:
+        level: INFO
+      # uvicorn.access contains access logs.
+      uvicorn.access:
+        level: INFO
+    handlers:
+      console:
+        class : logging.StreamHandler
+        formatter: gouge
     formatters:
       gouge:
-        class: "my.module.MyFormatter"
+        class: "powonline.logging.LogFormatter"
+
 
 
 Module Contents
