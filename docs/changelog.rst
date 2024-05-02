@@ -17,6 +17,9 @@ Version 2.2
 
 * [2.2.2] - fix: Correctly initialise the "highlighted_path" value
 
+* [2.2.2post1] - fix: Corrected the "preformatters" example from the
+  documentation
+
 Version 2.1
 -----------
 
