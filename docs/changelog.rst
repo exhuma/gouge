@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 2.2.5
+-------------
+
+* Fix a bug causing all exception message to revert back to red, even if the
+  colour was customised.
+
 Version 2.2
 -----------
 
