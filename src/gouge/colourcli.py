@@ -154,22 +154,26 @@ class Simple(logging.Formatter):
                 # (it's constant anyway)
                 exc_text = getattr(record, "exc_text", "")
                 if not exc_text:
-                    record.exc_text = self.formatException(record.exc_info)
+                    record.exc_text = self.formatException(record.exc_info, "")
 
             exc_text = getattr(record, "exc_text", "")
             if exc_text:
-                if record.levelno >= logging.ERROR:
-                    message_template += "\n{f.RED}"
-                else:
-                    message_template += "\n{f.WHITE}{s.DIM}"
-                message_template += self.formatException(record.exc_info)
+                exc_color = (
+                    "{f.RED}"
+                    if record.levelno >= logging.ERROR
+                    else "{f.WHITE}{s.DIM}"
+                )
+                message_template += f"\n{exc_color}"
+                message_template += self.formatException(
+                    record.exc_info, exc_color
+                )
                 message_template += "{s.RESET_ALL}"
 
         return message_template.format(
             levelcolor=colorize, f=clr.Fore, s=clr.Style, **vars(record)
         )
 
-    def formatException(self, exc_info: tuple) -> str:
+    def formatException(self, exc_info: tuple, exc_color: str) -> str:
         exc_text = super().formatException(exc_info)
         if "{" in exc_text or "}" in exc_text:
             exc_text = exc_text.replace("{", "{{").replace("}", "}}")
@@ -183,7 +187,7 @@ class Simple(logging.Formatter):
             if filename.is_relative_to(pth):
                 return match.group(0).replace(
                     match.group(1),
-                    f"{clr.Fore.YELLOW}{match.group(1)}{clr.Fore.RED}",
+                    f"{clr.Fore.YELLOW}{match.group(1)}{exc_color}",
                 )
             return match.group(0)
 
