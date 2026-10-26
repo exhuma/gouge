@@ -2,72 +2,153 @@
 name: Python package
 
 # yamllint disable-line rule:truthy
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  # Monthly run: detects breakage caused by new Python releases.
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  versions:
+    name: Compute Python versions
+    runs-on: ubuntu-latest
+    outputs:
+      supported: ${{ steps.compute.outputs.supported }}
+      oldest: ${{ steps.compute.outputs.oldest }}
+      latest: ${{ steps.compute.outputs.latest }}
+      next: ${{ steps.compute.outputs.next }}
+    steps:
+      - uses: actions/checkout@v7
 
+      - name: Fetch supported CPython versions from endoflife.date
+        id: compute
+        run: |
+          if ! curl --fail --silent --show-error --location --retry 3 \
+              --output eol.json https://endoflife.date/api/python.json; then
+            echo "::error::Could not fetch https://endoflife.date/api/python.json; refusing to fall back to a pinned version list."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          import os
+          import tomllib
+          from datetime import date
+
+          today = date.today().isoformat()
+          with open("eol.json") as fp:
+              cycles = json.load(fp)
+
+          def key(cycle):
+              return tuple(int(p) for p in cycle.split("."))
+
+          # Released (release date in the past) and not yet end-of-life.
+          supported = sorted(
+              (
+                  c["cycle"]
+                  for c in cycles
+                  if str(c["releaseDate"]) <= today
+                  and c["eol"] is not True
+                  and (c["eol"] is False or str(c["eol"]) > today)
+              ),
+              key=key,
+          )
+          if not supported:
+              raise SystemExit("::error::endoflife.date returned no supported CPython version")
+          major, minor = key(supported[-1])
+          next_version = f"{major}.{minor + 1}"
+
+          with open("pyproject.toml", "rb") as fp:
+              requires = tomllib.load(fp)["project"]["requires-python"]
+          floor = requires.removeprefix(">=").strip()
+          if key(floor) < key(supported[0]):
+              print(
+                  f"::warning::requires-python ({requires}) is below the oldest "
+                  f"supported CPython ({supported[0]}). The next release should "
+                  "raise requires-python and the version classifiers."
+              )
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"supported={json.dumps(supported)}\n")
+              out.write(f"oldest={supported[0]}\n")
+              out.write(f"latest={supported[-1]}\n")
+              out.write(f"next={next_version}\n")
+          print("supported:", supported, "next:", next_version)
+          PY
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    needs: versions
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
+      fail-fast: false
       matrix:
-        python-version:
-          - "3.8"
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
-          - "3.x"
-
+        python-version: ${{ fromJSON(needs.versions.outputs.supported) }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.2
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        id: python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev,test]"
+        run: uv sync --locked --python '${{ steps.python.outputs.python-path }}'
+
       - name: Test with pytest
-        run: |
-          pytest
+        run: uv run pytest
 
   quality-control:
     runs-on: ubuntu-latest
+    needs: versions
     steps:
-      - uses: actions/checkout@v1
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v1
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.2
+
+      - name: Set up Python
+        id: python
+        uses: actions/setup-python@v7
         with:
-          python-version: 3.11
+          python-version: ${{ needs.versions.outputs.latest }}
+
+      - name: Install dependencies
+        run: uv sync --locked --python '${{ steps.python.outputs.python-path }}'
+
       - name: Lint with pylint
-        run: |
-          pip install pylint
-          pylint --reports=y --exit-zero gouge
+        run: uv run --with pylint pylint --reports=y --exit-zero gouge
+
       - name: Check pre-commit hooks
-        run: |
-          pip install pre-commit
-          pre-commit run --all-files
+        run: uvx pre-commit run --all-files
 
   publish:
-
-    needs: test
+    needs: [test, quality-control]
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.2
+
       - name: Build distribution
-        if: >
-          github.event_name == 'push' &&
-          startsWith(github.event.ref, 'refs/tags')
-        run: |
-          pip install build
-          pyproject-build
+        run: uv build
+
       - name: Publish package
-        if: >
-            github.event_name == 'push' &&
-            startsWith(github.event.ref, 'refs/tags')
-        uses: pypa/gh-action-pypi-publish@v1.4.2
+        uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
           user: __token__
           password: ${{ secrets.pypi_token }}

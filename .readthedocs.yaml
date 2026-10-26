@@ -11,8 +11,14 @@ build:
   tools:
     python: "3.11"
   jobs:
-    pre_build:
-      - pip install -e ".[dev]"
+    pre_create_environment:
+      - asdf plugin add uv
+      - asdf install uv latest
+      - asdf global uv latest
+    create_environment:
+      - uv venv "${READTHEDOCS_VIRTUALENV_PATH}"
+    install:
+      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv sync --locked
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
