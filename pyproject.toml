@@ -32,13 +32,11 @@ dependencies = [
 [project.urls]
 Repository = "https://github.com/exhuma/gouge"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "furo",
+    "pytest",
     "types-colorama",
-]
-test = [
-    "pytest"
 ]
 
 [tool.black]
