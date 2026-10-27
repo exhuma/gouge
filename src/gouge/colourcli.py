@@ -13,11 +13,7 @@ from typing import Any, Literal
 
 import colorama as clr
 
-from gouge._record import (
-    cache_exc_text,
-    extra_attributes,
-    selected_attributes,
-)
+from gouge._record import extra_attributes, selected_attributes
 
 P_FILENAME = re.compile(r"File \"([^\"]+)\", line (\d+), in ([^\s]+)")
 P_ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
@@ -361,7 +357,13 @@ class Simple(logging.Formatter):
         # Cache the *plain* traceback, like the stdlib formatter does.
         # Other handlers may reuse ``record.exc_text``, so it must not
         # contain any escape codes.
-        cache_exc_text(record, self)
+        # The stdlib method is called directly: overrides of
+        # formatException() use the 2.2.5 signature with a required
+        # *exc_color* and must only be called with both arguments.
+        if record.exc_info and not record.exc_text:
+            record.exc_text = logging.Formatter.formatException(
+                self, record.exc_info
+            )
         if not record.exc_text:
             return output
         exc_color = (

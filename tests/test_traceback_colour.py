@@ -238,7 +238,7 @@ def test_format_exception_override_is_the_traceback_hook(
     record = make_record(level=logging.ERROR, exc_info=True)
     output = Custom(show_exc=True).format(record)
     assert output.endswith("\n<<custom boom>>")
-    assert calls == ["", RED]
+    assert calls == [RED]
     assert record.exc_text is not None
     assert "ValueError: boom" in record.exc_text
     assert "<<custom" not in record.exc_text

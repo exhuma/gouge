@@ -5,6 +5,7 @@ Regression tests for bugs fixed in the 2.3 line.
 import io
 import logging
 import warnings
+from typing import Any
 from pathlib import Path
 
 import pytest
@@ -132,3 +133,27 @@ def test_extra_named_like_template_helper(name: str) -> None:
     expected = Simple().format(record)
     setattr(record, name, "boom")
     assert Simple().format(record) == expected
+
+
+def test_old_style_format_exception_override_still_works(
+    make_record: MakeRecord,
+) -> None:
+    """
+    Ensure a 2.2.5 subclass with a required *exc_color* argument is only
+    called with two arguments, and that ``exc_text`` stays plain.
+    """
+
+    class OldStyle(Simple):
+        def formatException(  # type: ignore[override]
+            self, exc_info: Any, exc_color: str
+        ) -> str:
+            return f"CUSTOM[{exc_color!r}] {exc_info[1]}"
+
+    record = make_record(level=logging.ERROR, exc_info=True)
+    output = OldStyle(show_exc=True, force_styling=True).format(record)
+    assert "CUSTOM[" in output
+    assert "boom" in output
+    assert record.exc_text is not None
+    assert "CUSTOM" not in record.exc_text
+    assert not P_ANSI.search(record.exc_text)
+    assert "Traceback" in record.exc_text
