@@ -44,3 +44,16 @@ def test_uvicorn_access(status_code: str) -> None:
 def test_uvicorn_access_default() -> None:
     result = pf.uvicorn_access("invalid-line-format")
     assert result == "invalid-line-format"
+
+
+def test_single_pre_formatter_needs_no_list() -> None:
+    """
+    Ensure a bare dotted path or callable is a one-element list, not
+    iterated character by character.
+    """
+    from gouge.preformatters import uvicorn_access
+
+    by_path = Simple(pre_formatters={"x": "gouge.preformatters.uvicorn_access"})
+    by_callable = Simple(pre_formatters={"x": str.upper})
+    assert by_path.pre_formatters == {"x": [uvicorn_access]}
+    assert by_callable.pre_formatters == {"x": [str.upper]}

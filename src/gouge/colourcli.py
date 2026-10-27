@@ -107,8 +107,9 @@ class Simple(logging.Formatter):
     :param show_pid: Whether to prefix each line with the process ID.
     :param pre_formatters: Functions which rewrite the message of records
         of a given logger, as a mapping of logger name to a sequence of
-        functions. Each item is either a callable taking and returning a
-        :py:class:`str`, or a dotted path to one, such as
+        functions. A single function (or path) instead of a sequence is
+        treated as a one-element sequence. Each item is either a callable
+        taking and returning a :py:class:`str`, or a dotted path to one, such as
         ``"gouge.preformatters.uvicorn_access"``. Paths are imported once
         when the formatter is created, which makes this option usable from
         :py:func:`logging.config.dictConfig` and YAML files. Paths are
@@ -187,7 +188,13 @@ class Simple(logging.Formatter):
         *,
         show_extra: bool | Sequence[str] = False,
         pre_formatters: (
-            Mapping[str, Sequence[Callable[[str], str] | str]] | None
+            Mapping[
+                str,
+                Callable[[str], str]
+                | str
+                | Sequence[Callable[[str], str] | str],
+            ]
+            | None
         ) = None,
         **kwargs: Any,
     ) -> list[Handler]:
@@ -261,7 +268,13 @@ class Simple(logging.Formatter):
         force_styling: bool = False,
         show_pid: bool = False,
         pre_formatters: (
-            Mapping[str, Sequence[Callable[[str], str] | str]] | None
+            Mapping[
+                str,
+                Callable[[str], str]
+                | str
+                | Sequence[Callable[[str], str] | str],
+            ]
+            | None
         ) = None,
         highlighted_path: Path | None = None,
         show_extra: bool | Sequence[str] = False,
@@ -275,7 +288,14 @@ class Simple(logging.Formatter):
         self.show_pid = show_pid
         self._strip_colour = _colour_decision(force_styling) is False
         self.pre_formatters = {
-            name: [_resolve_pre_formatter(item) for item in items]
+            name: [
+                _resolve_pre_formatter(item)
+                for item in (
+                    [items]
+                    if isinstance(items, str) or callable(items)
+                    else items
+                )
+            ]
             for name, items in (pre_formatters or {}).items()
         }
         self.show_extra: bool | tuple[str, ...]
