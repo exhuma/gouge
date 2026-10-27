@@ -4,12 +4,14 @@ This module contains everything needed to emit colourful messages on the CLI
 
 import logging
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from logging import Handler, LogRecord
 from pathlib import Path
 from typing import Any, Literal
 
 import colorama as clr
+
+from gouge._record import extra_attributes, selected_attributes
 
 P_FILENAME = re.compile(r"File \"([^\"]+)\", line (\d+), in ([^\s]+)")
 
@@ -24,6 +26,42 @@ class Simple(logging.Formatter):
         in tracebacks. An explicitly given path always wins. If it is not
         given, ``<cwd>/src`` is used as the default when that directory
         exists, otherwise nothing is highlighted.
+    :param show_extra: Which *extra* attributes of a record to append to the
+        message, as dimmed ``key=value`` pairs. Extra attributes are those
+        passed with ``extra={...}`` to a log call or set by a filter.
+        ``False`` (the default) shows none. ``True`` shows every attribute
+        which is not a standard :py:class:`logging.LogRecord` attribute and
+        does not start with ``_``, sorted by name. A sequence of names shows
+        only those, in that order, and skips names the record does not have
+        (a single string is taken as one name). Values are rendered with
+        :py:func:`str`, or with :py:func:`repr` if that is empty or contains
+        whitespace, so the pairs stay easy to parse. The OpenTelemetry IDs
+        ``otelTraceID`` and ``otelSpanID`` are shown as ``trace_id`` and
+        ``span_id`` when a span is active.
+
+    Example, showing a correlation ID which a filter put on the records:
+
+    .. code-block:: python
+
+        import logging
+
+        from gouge.colourcli import Simple
+
+
+        class CorrelationFilter(logging.Filter):
+            def filter(self, record: logging.LogRecord) -> bool:
+                record.correlation_id = "4bf92f35"
+                return True
+
+
+        handler = logging.StreamHandler()
+        handler.addFilter(CorrelationFilter())
+        handler.setFormatter(Simple(show_extra=True))
+        logging.getLogger().addHandler(handler)
+        logging.getLogger("app").warning(
+            "Order created", extra={"order.id": 42}
+        )
+        # ... WARNING    [app] Order created correlation_id=4bf92f35 order.id=42
 
     .. note:: This formatter *suppresses* tracebacks by default! Remember that
         is is meant to give a concise, readable output. If you need to see
@@ -40,14 +78,16 @@ class Simple(logging.Formatter):
         force_styling: bool = False,
         show_pid: bool = False,
         highlighted_path: Path | None = None,
+        *,
+        show_extra: bool | Sequence[str] = False,
         **kwargs: Any,
     ) -> list[Handler]:
         """
         Convenience method to have a one-liner set-up.
 
-        *show_exc*, *show_threads*, *show_pid* and *force_styling* are directly
-        passed to :py:class:`~.Simple`. The remaining *kwargs* are passed on to
-        :py:func:`logging.basicConfig`.
+        *show_exc*, *show_threads*, *show_pid*, *force_styling* and
+        *show_extra* are directly passed to :py:class:`~.Simple`. The
+        remaining *kwargs* are passed on to :py:func:`logging.basicConfig`.
 
         If *highlighted_path* is set, it will highlight local filenames in
         tracebacks. This is useful if you want to highlight the current working
@@ -82,6 +122,7 @@ class Simple(logging.Formatter):
                     show_pid=show_pid,
                     force_styling=force_styling,
                     highlighted_path=highlighted_path,
+                    show_extra=show_extra,
                 )
             )
             output.append(handler)
@@ -101,6 +142,7 @@ class Simple(logging.Formatter):
         show_pid: bool = False,
         pre_formatters: dict[str, list[Callable[[str], str]]] | None = None,
         highlighted_path: Path | None = None,
+        show_extra: bool | Sequence[str] = False,
     ) -> None:
         super().__init__(
             fmt, datefmt, style, validate=validate, defaults=defaults
@@ -110,6 +152,13 @@ class Simple(logging.Formatter):
         self.force_styling = force_styling
         self.show_pid = show_pid
         self.pre_formatters = pre_formatters or {}
+        self.show_extra: bool | tuple[str, ...]
+        if isinstance(show_extra, str):
+            self.show_extra = (show_extra,)
+        elif isinstance(show_extra, bool):
+            self.show_extra = show_extra
+        else:
+            self.show_extra = tuple(show_extra)
         self.highlighted_path: Path | None
         if highlighted_path is not None:
             self.highlighted_path = highlighted_path.absolute()
@@ -161,6 +210,9 @@ class Simple(logging.Formatter):
                 "s": clr.Style,
             }
         )
+        extras = self._format_extras(record)
+        if extras:
+            output += f" {clr.Style.DIM}{extras}{clr.Style.RESET_ALL}"
 
         if self.show_exc:
             if record.exc_info and not record.exc_text:
@@ -179,6 +231,21 @@ class Simple(logging.Formatter):
                 )
 
         return output
+
+    def _format_extras(self, record: LogRecord) -> str:
+        """
+        Render the extra attributes selected by *show_extra* as
+        space-separated ``key=value`` pairs.
+        """
+        if self.show_extra is False:
+            return ""
+        if self.show_extra is True:
+            attributes = extra_attributes(record)
+        else:
+            attributes = selected_attributes(record, self.show_extra)
+        return " ".join(
+            f"{key}={_format_value(value)}" for key, value in attributes.items()
+        )
 
     def formatException(self, exc_info: Any, exc_color: str = "") -> str:
         """
@@ -225,3 +292,14 @@ class Simple(logging.Formatter):
                 line = f"{exc_color}{line}{clr.Style.RESET_ALL}"
             lines.append(line)
         return "\n".join(lines)
+
+
+def _format_value(value: object) -> str:
+    """
+    Render *value* for a ``key=value`` pair: :py:func:`str`, unless that is
+    empty or contains whitespace, then :py:func:`repr` of that string.
+    """
+    text = str(value)
+    if not text or any(char.isspace() for char in text):
+        return repr(text)
+    return text
