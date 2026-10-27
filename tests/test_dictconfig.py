@@ -11,16 +11,11 @@ from typing import Any
 
 import pytest
 
+from conftest import MakeRecord
 from gouge.colourcli import Simple, capture_uvicorn
 from gouge.preformatters import uvicorn_access
 
 ACCESS = '127.0.0.1 - "GET /x HTTP/1.1" 200'
-
-
-def _record(
-    name: str = "uvicorn.access", msg: str = ACCESS
-) -> logging.LogRecord:
-    return logging.LogRecord(name, logging.INFO, "p", 1, msg, (), None)
 
 
 @pytest.mark.parametrize(
@@ -32,7 +27,10 @@ def _record(
     ],
 )
 def test_parseable_from_dictconfig(
-    key: str, cls: str, restore_root_logger: logging.Logger
+    key: str,
+    cls: str,
+    restore_root_logger: logging.Logger,
+    make_record: MakeRecord,
 ) -> None:
     logging.config.dictConfig(
         {
@@ -46,11 +44,13 @@ def test_parseable_from_dictconfig(
     )
     handler = logging.getLogger().handlers[0]
     assert type(handler.formatter).__name__ == cls
-    assert "hello" in handler.format(_record("a", "hello"))
+    assert "hello" in handler.format(
+        make_record("hello", name="a", level=logging.INFO)
+    )
 
 
 def test_simple_from_dictconfig_with_dotted_pre_formatter(
-    restore_root_logger: logging.Logger,
+    restore_root_logger: logging.Logger, make_record: MakeRecord
 ) -> None:
     logging.config.dictConfig(
         {
@@ -74,10 +74,14 @@ def test_simple_from_dictconfig_with_dotted_pre_formatter(
     assert handler.formatter.pre_formatters == {
         "uvicorn.access": [uvicorn_access]
     }
-    assert "\x1b[34m127.0.0.1" in handler.format(_record())
+    assert "\x1b[34m127.0.0.1" in handler.format(
+        make_record(ACCESS, name="uvicorn.access", level=logging.INFO)
+    )
 
 
-def test_pre_formatters_accept_callables_and_strings() -> None:
+def test_pre_formatters_accept_callables_and_strings(
+    make_record: MakeRecord,
+) -> None:
     def upper(message: str) -> str:
         return message.upper()
 
@@ -85,7 +89,7 @@ def test_pre_formatters_accept_callables_and_strings() -> None:
         pre_formatters={"a": [upper, "gouge.preformatters.uvicorn_access"]}
     )
     assert fmt.pre_formatters == {"a": [upper, uvicorn_access]}
-    assert "HI" in fmt.format(_record("a", "hi"))
+    assert "HI" in fmt.format(make_record("hi", name="a", level=logging.INFO))
 
 
 @pytest.mark.parametrize(

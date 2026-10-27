@@ -5,72 +5,68 @@ Tests for the machine-readable formatters.
 import csv
 import io
 import logging
-import sys
 from xml.dom.minidom import parseString
 
 import pytest
 
+from conftest import MakeRecord
 from gouge.parseable import CSVLog, XMLLog
 
 
-def _record(exc: bool = False) -> logging.LogRecord:
-    exc_info = None
-    if exc:
-        try:
-            raise ValueError("boom")
-        except ValueError:
-            exc_info = sys.exc_info()
-    return logging.LogRecord(
-        "my.logger",
-        logging.WARNING,
-        "/some/path.py",
-        42,
-        "hello %s",
-        args=("world",),
-        exc_info=exc_info,
-    )
-
-
-def test_csv_format_columns() -> None:
+def test_csv_format_columns(make_record: MakeRecord) -> None:
     """
     Ensure a CSV row has the documented columns with the formatted message.
     """
-    row = next(csv.reader(io.StringIO(CSVLog().format(_record()))))
+    row = next(
+        csv.reader(
+            io.StringIO(
+                CSVLog().format(
+                    make_record("hello %s", ("world",), name="my.logger")
+                )
+            )
+        )
+    )
     assert len(row) == 17
     assert row[3] == "WARNING"
     assert row[4] == "30"
-    assert row[5] == "42"
+    assert row[5] == "7"
     assert row[8] == "my.logger"
     assert row[15] == "hello world"
     assert row[16] == ""
 
 
-def test_csv_format_exception() -> None:
+def test_csv_format_exception(make_record: MakeRecord) -> None:
     """
     Ensure the traceback text is placed in the last CSV column.
     """
     formatter = CSVLog()
-    record = _record(exc=True)
+    record = make_record(
+        "hello %s", ("world",), name="my.logger", exc_info=True
+    )
     row = next(csv.reader(io.StringIO(formatter.format(record))))
     assert "ValueError: boom" in row[16]
     assert "Traceback" in row[16]
 
 
-def test_csv_is_stateless_between_records() -> None:
+def test_csv_is_stateless_between_records(make_record: MakeRecord) -> None:
     """
     Ensure consecutive records do not leak into each other.
     """
     formatter = CSVLog()
-    formatter.format(_record())
-    output = formatter.format(_record())
+    formatter.format(make_record("hello %s", ("world",), name="my.logger"))
+    output = formatter.format(
+        make_record("hello %s", ("world",), name="my.logger")
+    )
     assert len(list(csv.reader(io.StringIO(output)))) == 1
 
 
-def test_xml_format_fields() -> None:
+def test_xml_format_fields(make_record: MakeRecord) -> None:
     """
     Ensure the XML record contains the documented elements.
     """
-    doc = parseString(XMLLog().format(_record()))
+    doc = parseString(
+        XMLLog().format(make_record("hello %s", ("world",), name="my.logger"))
+    )
     assert doc.documentElement is not None
     assert doc.documentElement.tagName == "record"
 
@@ -87,11 +83,13 @@ def test_xml_format_fields() -> None:
     assert "Traceback" not in text("exc_text")
 
 
-def test_xml_format_exception_is_escaped() -> None:
+def test_xml_format_exception_is_escaped(make_record: MakeRecord) -> None:
     """
     Ensure the traceback text is included and is valid XML.
     """
-    record = _record(exc=True)
+    record = make_record(
+        "hello %s", ("world",), name="my.logger", exc_info=True
+    )
     record.msg = "a <b> & c"
     record.args = ()
     doc = parseString(XMLLog().format(record))

@@ -4,38 +4,26 @@ Tests for the NO_COLOR / FORCE_COLOR handling.
 
 import io
 import logging
-import re
-from collections.abc import Iterator
 
 import colorama as clr
 import pytest
 
-from gouge.colourcli import Simple, _colour_decision
+from conftest import MakeRecord
+from gouge.colourcli import P_ANSI, Simple, _colour_decision
 from gouge.preformatters import uvicorn_access
 
-ANSI = re.compile(r"\x1b")
+ACCESS_LINE = '1.2.3.4 - "GET /x HTTP/1.1" 200'
+BOOM = (ValueError, ValueError("boom"), None)
 
 
-@pytest.fixture(autouse=True)
-def clean_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.delenv("NO_COLOR", raising=False)
-    monkeypatch.delenv("FORCE_COLOR", raising=False)
-    yield
-    clr.deinit()
-
-
-def _record(exc: bool = False) -> logging.LogRecord:
-    record = logging.LogRecord(
-        "uvicorn.access",
-        logging.ERROR,
-        "p",
-        1,
-        '1.2.3.4 - "GET /x HTTP/1.1" 200',
-        (),
-        (ValueError, ValueError("boom"), None) if exc else None,
+def _access(make_record: MakeRecord, exc: bool = False) -> logging.LogRecord:
+    return make_record(
+        ACCESS_LINE,
+        name="uvicorn.access",
+        level=logging.ERROR,
+        exc_info=BOOM if exc else None,
+        extras={"cid": "abc"},
     )
-    record.cid = "abc"
-    return record
 
 
 def _formatter(**kwargs: object) -> Simple:
@@ -75,8 +63,8 @@ def test_precedence(
     assert Simple(force_styling=force)._colour is expected
 
 
-def test_default_output_is_unchanged() -> None:
-    assert _formatter().format(_record(exc=True)) == (
+def test_default_output_is_unchanged(make_record: MakeRecord) -> None:
+    assert _formatter().format(_access(make_record, exc=True)) == (
         "\x1b[32mT\x1b[0m \x1b[1m\x1b[31mERROR     \x1b[0m "
         "\x1b[1m[uvicorn.access]\x1b[0m \x1b[34m1.2.3.4\x1b[0m - "
         '"\x1b[32mGET\x1b[0m \x1b[1m\x1b[37m/x\x1b[0m '
@@ -85,9 +73,11 @@ def test_default_output_is_unchanged() -> None:
     )
 
 
-def test_no_color_output_is_plain(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_no_color_output_is_plain(
+    monkeypatch: pytest.MonkeyPatch, make_record: MakeRecord
+) -> None:
     monkeypatch.setenv("NO_COLOR", "1")
-    assert _formatter().format(_record(exc=True)) == (
+    assert _formatter().format(_access(make_record, exc=True)) == (
         'T ERROR      [uvicorn.access] 1.2.3.4 - "GET /x HTTP/1.1" 200 '
         "cid=abc\nValueError: boom"
     )
@@ -111,24 +101,30 @@ def test_no_color_highlighted_path_is_plain(
         show_exc=True, highlighted_path=Path(__file__).parent
     ).format(record)
     assert "test_no_color.py" in output
-    assert not ANSI.search(output)
+    assert not P_ANSI.search(output)
 
 
 def test_force_color_env_wins_over_nothing(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, make_record: MakeRecord
 ) -> None:
     monkeypatch.setenv("FORCE_COLOR", "1")
-    assert "\x1b[" in _formatter().format(_record())
+    assert "\x1b[" in _formatter().format(_access(make_record))
 
 
-def test_force_styling_beats_no_color(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_force_styling_beats_no_color(
+    monkeypatch: pytest.MonkeyPatch, make_record: MakeRecord
+) -> None:
     monkeypatch.setenv("NO_COLOR", "1")
-    assert "\x1b[" in _formatter(force_styling=True).format(_record())
+    assert "\x1b[" in _formatter(force_styling=True).format(
+        _access(make_record)
+    )
 
 
-def test_empty_no_color_is_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_empty_no_color_is_ignored(
+    monkeypatch: pytest.MonkeyPatch, make_record: MakeRecord
+) -> None:
     monkeypatch.setenv("NO_COLOR", "")
-    assert "\x1b[" in _formatter().format(_record())
+    assert "\x1b[" in _formatter().format(_access(make_record))
 
 
 @pytest.mark.parametrize(

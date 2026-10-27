@@ -6,35 +6,14 @@ import io
 import json
 import logging
 import logging.config
-import sys
 from collections.abc import Iterator
 from typing import Any
 
 import pytest
 
+from conftest import CREATED, MakeRecord
 from gouge.colourcli import Simple
 from gouge.parseable import JSONLog
-
-#: 2026-10-27T13:34:48.899 UTC
-CREATED = 1793108088.899
-
-
-def _record(
-    msg: str = "Order created",
-    args: tuple[object, ...] | None = None,
-    exc: bool = False,
-) -> logging.LogRecord:
-    exc_info = None
-    if exc:
-        try:
-            raise ValueError("boom")
-        except ValueError:
-            exc_info = sys.exc_info()
-    record = logging.LogRecord(
-        "app.orders", logging.WARNING, "/src/app.py", 7, msg, args, exc_info
-    )
-    record.created = CREATED
-    return record
 
 
 def _parse(line: str) -> dict[str, Any]:
@@ -66,24 +45,26 @@ def app_logger() -> Iterator[logging.Logger]:
     logger.propagate = True
 
 
-def test_core_keys_exact() -> None:
+def test_core_keys_exact(make_record: MakeRecord) -> None:
     """
     Ensure a plain record renders exactly the core keys, in order, as one
     compact line.
     """
-    output = JSONLog().format(_record("hello %s", ("world",)))
+    output = JSONLog().format(
+        make_record("hello %s", ("world",), created=CREATED)
+    )
     assert output == (
         '{"timestamp":"2026-10-27T13:34:48.899+00:00","level":"WARNING",'
         '"logger":"app.orders","message":"hello world"}'
     )
 
 
-def test_extras_are_top_level_and_sorted() -> None:
+def test_extras_are_top_level_and_sorted(make_record: MakeRecord) -> None:
     """
     Ensure extra attributes are added as top-level keys, sorted by name,
     after the core keys, and private names are skipped.
     """
-    record = _record()
+    record = make_record(created=CREATED)
     record.zeta = 1
     record.__dict__["order.id"] = 42
     record._private = "hidden"
@@ -100,11 +81,11 @@ def test_extras_are_top_level_and_sorted() -> None:
     assert data["zeta"] == 1
 
 
-def test_json_types_are_kept() -> None:
+def test_json_types_are_kept(make_record: MakeRecord) -> None:
     """
     Ensure JSON-compatible values keep their type.
     """
-    record = _record()
+    record = make_record(created=CREATED)
     record.flag = True
     record.ratio = 0.5
     record.nothing = None
@@ -116,11 +97,11 @@ def test_json_types_are_kept() -> None:
     assert data["items"] == ["a", 1]
 
 
-def test_unicode_is_written_as_is() -> None:
+def test_unicode_is_written_as_is(make_record: MakeRecord) -> None:
     """
     Ensure non-ASCII text is not escaped and survives a round trip.
     """
-    record = _record("Bestellung für %s", ("Zoë",))
+    record = make_record("Bestellung für %s", ("Zoë",), created=CREATED)
     record.city = "Luxembourg-Ville ☃"
     output = JSONLog().format(record)
     assert "für Zoë" in output
@@ -130,15 +111,15 @@ def test_unicode_is_written_as_is() -> None:
     assert data["city"] == "Luxembourg-Ville ☃"
 
 
-def test_newlines_are_escaped() -> None:
+def test_newlines_are_escaped(make_record: MakeRecord) -> None:
     """
     Ensure multi-line messages stay on one output line.
     """
-    output = JSONLog().format(_record("first\nsecond"))
+    output = JSONLog().format(make_record("first\nsecond", created=CREATED))
     assert _parse(output)["message"] == "first\nsecond"
 
 
-def test_non_serialisable_value_uses_str() -> None:
+def test_non_serialisable_value_uses_str(make_record: MakeRecord) -> None:
     """
     Ensure values JSON cannot represent are written as their ``str()``.
     """
@@ -147,7 +128,7 @@ def test_non_serialisable_value_uses_str() -> None:
         def __str__(self) -> str:
             return "Order#42"
 
-    record = _record()
+    record = make_record(created=CREATED)
     record.order = Order()
     record.ids = {1, 2}
     data = _parse(JSONLog().format(record))
@@ -155,12 +136,12 @@ def test_non_serialisable_value_uses_str() -> None:
     assert data["ids"] == "{1, 2}"
 
 
-def test_exception() -> None:
+def test_exception(make_record: MakeRecord) -> None:
     """
     Ensure the plain traceback is added as ``exc_text`` and cached on the
     record.
     """
-    record = _record(exc=True)
+    record = make_record(exc_info=True, created=CREATED)
     formatter = JSONLog()
     data = _parse(formatter.format(record))
     assert list(data)[-1] == "exc_text"
@@ -170,32 +151,32 @@ def test_exception() -> None:
     assert record.exc_text == data["exc_text"]
 
 
-def test_cached_exc_text_is_reused() -> None:
+def test_cached_exc_text_is_reused(make_record: MakeRecord) -> None:
     """
     Ensure an ``exc_text`` cached by another formatter is used as-is.
     """
-    record = _record(exc=True)
+    record = make_record(exc_info=True, created=CREATED)
     record.exc_text = "cached"
     assert _parse(JSONLog().format(record))["exc_text"] == "cached"
 
 
-def test_stack_info() -> None:
+def test_stack_info(make_record: MakeRecord) -> None:
     """
     Ensure ``stack_info`` is added only when the record has one.
     """
-    record = _record()
+    record = make_record(created=CREATED)
     assert "stack_info" not in _parse(JSONLog().format(record))
     record.stack_info = "Stack (most recent call last):\n  here"
     data = _parse(JSONLog().format(record))
     assert data["stack_info"] == "Stack (most recent call last):\n  here"
 
 
-def test_extras_colliding_with_core_keys() -> None:
+def test_extras_colliding_with_core_keys(make_record: MakeRecord) -> None:
     """
     Ensure extras named like core keys do not overwrite them but are kept
     under ``extra.<name>``, and an explicit ``extra.<name>`` wins.
     """
-    record = _record()
+    record = make_record(created=CREATED)
     record.timestamp = "fake"
     record.level = "fake"
     record.logger = "fake"
@@ -212,12 +193,12 @@ def test_extras_colliding_with_core_keys() -> None:
     assert data["extra.level"] == "explicit"
 
 
-def test_opentelemetry_ids() -> None:
+def test_opentelemetry_ids(make_record: MakeRecord) -> None:
     """
     Ensure OpenTelemetry's record attributes become ``trace_id`` and
     ``span_id`` and the other ``otel*`` attributes are left out.
     """
-    record = _record()
+    record = make_record(created=CREATED)
     record.otelTraceID = "0af7651916cd43dd8448eb211c80319c"
     record.otelSpanID = "b7ad6b7169203331"
     record.otelServiceName = "app"
@@ -228,12 +209,12 @@ def test_opentelemetry_ids() -> None:
     assert not [key for key in data if key.startswith("otel")]
 
 
-def test_datefmt_is_applied_in_utc() -> None:
+def test_datefmt_is_applied_in_utc(make_record: MakeRecord) -> None:
     """
     Ensure *datefmt* formats the UTC time.
     """
     formatter = JSONLog(datefmt="%Y-%m-%dT%H:%M:%S%z")
-    data = _parse(formatter.format(_record()))
+    data = _parse(formatter.format(make_record(created=CREATED)))
     assert data["timestamp"] == "2026-10-27T13:34:48+0000"
 
 

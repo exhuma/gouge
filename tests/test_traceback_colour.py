@@ -4,7 +4,6 @@ Golden tests for the colours of tracebacks emitted by the "Simple" formatter.
 
 import importlib.util
 import logging
-import re
 from collections.abc import Callable
 from logging import LogRecord
 from pathlib import Path
@@ -12,14 +11,12 @@ from types import TracebackType
 
 import pytest
 
-from gouge.colourcli import Simple
+from gouge.colourcli import P_ANSI, Simple
 
 RED = "\x1b[31m"
 DIM_WHITE = "\x1b[37m\x1b[2m"
 YELLOW = "\x1b[33m"
 RESET = "\x1b[0m"
-
-P_ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 ExcInfo = tuple[type[BaseException], BaseException, TracebackType]
 
