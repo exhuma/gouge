@@ -88,3 +88,15 @@ def test_dictconfig() -> None:
     import logging.config
 
     logging.config.dictConfig(config)
+
+
+def test_show_threads() -> None:
+    """
+    Ensure the thread name is shown when requested, and only then.
+    """
+    record = LogRecord(
+        "name", logging.DEBUG, "path", 42, "message", args={}, exc_info=None
+    )
+    record.threadName = "worker-7"
+    assert "worker-7" in Simple(show_threads=True).format(record)
+    assert "worker-7" not in Simple().format(record)
