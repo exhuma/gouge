@@ -42,6 +42,16 @@ class CSVLog(logging.Formatter):
     * threadName
     * message
     * exc_text
+
+    :param fmt: Passed on to :py:class:`logging.Formatter`.
+    :param datefmt: Passed on to :py:class:`logging.Formatter`.
+    :param style: Passed on to :py:class:`logging.Formatter`.
+    :param validate: Passed on to :py:class:`logging.Formatter`.
+    :param defaults: Passed on to :py:class:`logging.Formatter`.
+
+    With :py:func:`logging.config.dictConfig`, use either
+    ``{"()": "gouge.parseable.CSVLog"}`` or
+    ``{"class": "gouge.parseable.CSVLog"}`` as the formatter.
     """
 
     @staticmethod
@@ -52,9 +62,17 @@ class CSVLog(logging.Formatter):
             handler.setFormatter(CSVLog())
 
     def __init__(
-        self, fmt: str | None = None, datefmt: str | None = None
+        self,
+        fmt: str | None = None,
+        datefmt: str | None = None,
+        style: Literal["%", "{", "$"] = "%",
+        validate: bool = True,
+        *,
+        defaults: Mapping[str, Any] | None = None,
     ) -> None:
-        logging.Formatter.__init__(self, fmt, datefmt)
+        super().__init__(
+            fmt, datefmt, style, validate=validate, defaults=defaults
+        )
         self.buffer = io.StringIO()
         self.writer = csv.writer(self.buffer)
 
@@ -121,6 +139,16 @@ class XMLLog(logging.Formatter):
             <message />
             <exc_text />
         </record>
+
+    :param fmt: Passed on to :py:class:`logging.Formatter`.
+    :param datefmt: Passed on to :py:class:`logging.Formatter`.
+    :param style: Passed on to :py:class:`logging.Formatter`.
+    :param validate: Passed on to :py:class:`logging.Formatter`.
+    :param defaults: Passed on to :py:class:`logging.Formatter`.
+
+    With :py:func:`logging.config.dictConfig`, use either
+    ``{"()": "gouge.parseable.XMLLog"}`` or
+    ``{"class": "gouge.parseable.XMLLog"}`` as the formatter.
     """
 
     @staticmethod
@@ -131,9 +159,17 @@ class XMLLog(logging.Formatter):
             handler.setFormatter(XMLLog())
 
     def __init__(
-        self, fmt: str | None = None, datefmt: str | None = None
+        self,
+        fmt: str | None = None,
+        datefmt: str | None = None,
+        style: Literal["%", "{", "$"] = "%",
+        validate: bool = True,
+        *,
+        defaults: Mapping[str, Any] | None = None,
     ) -> None:
-        logging.Formatter.__init__(self, fmt, datefmt)
+        super().__init__(
+            fmt, datefmt, style, validate=validate, defaults=defaults
+        )
         from xml.dom.minidom import Document
 
         self.doc = Document()

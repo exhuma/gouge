@@ -2,6 +2,7 @@
 This module contains everything needed to emit colourful messages on the CLI
 """
 
+import importlib
 import logging
 import re
 from collections.abc import Callable, Mapping, Sequence
@@ -15,11 +16,89 @@ from gouge._record import extra_attributes, selected_attributes
 
 P_FILENAME = re.compile(r"File \"([^\"]+)\", line (\d+), in ([^\s]+)")
 
+#: The loggers :py:func:`capture_uvicorn` redirects by default.
+UVICORN_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access")
+
+
+def _resolve_pre_formatter(
+    spec: Callable[[str], str] | str,
+) -> Callable[[str], str]:
+    """
+    Return *spec* if it is callable, otherwise import the dotted path.
+
+    :raises ValueError: If a string is not a dotted path to a callable.
+    """
+    if not isinstance(spec, str):
+        return spec
+    module_name, _, attribute = spec.rpartition(".")
+    if not module_name:
+        raise ValueError(
+            f"Invalid pre-formatter {spec!r}: expected a dotted path like "
+            "'package.module.function'"
+        )
+    try:
+        resolved = getattr(importlib.import_module(module_name), attribute)
+    except (ImportError, AttributeError) as exc:
+        raise ValueError(
+            f"Cannot import pre-formatter {spec!r}: {exc}"
+        ) from exc
+    if not callable(resolved):
+        raise ValueError(f"Pre-formatter {spec!r} is not callable")
+    result: Callable[[str], str] = resolved
+    return result
+
+
+def capture_uvicorn(
+    level: int | str | None = None,
+    loggers: Sequence[str] = UVICORN_LOGGERS,
+) -> None:
+    """
+    Route uvicorn's log records through the root handlers.
+
+    uvicorn installs its own handlers on its loggers and stops them from
+    propagating, so the formatter configured on the root logger (for
+    example with :py:meth:`Simple.basicConfig`) never sees them. This
+    removes the handlers of *loggers* and enables propagation. uvicorn is
+    not imported.
+
+    Call it **after** uvicorn configured its loggers, or uvicorn's setup
+    undoes it: either call it in a startup hook of the application (for
+    example the FastAPI lifespan), or start uvicorn with ``log_config=None``
+    so uvicorn does not install handlers in the first place (then only the
+    ``propagate`` flags matter). Note that ``access_log=False`` makes
+    uvicorn disable propagation of ``uvicorn.access``; calling this
+    afterwards enables it again.
+
+    :param level: Optional level to set on *loggers*.
+    :param loggers: Names of the loggers to redirect. Defaults to
+        ``uvicorn``, ``uvicorn.error`` and ``uvicorn.access``.
+    """
+    for name in loggers:
+        logger = logging.getLogger(name)
+        logger.handlers = []
+        logger.propagate = True
+        if level is not None:
+            logger.setLevel(level)
+
 
 class Simple(logging.Formatter):
     """
     Fancy, colorised log output adding ANSI escape codes to the log output.
 
+    :param fmt: Passed on to :py:class:`logging.Formatter`.
+    :param datefmt: Passed on to :py:class:`logging.Formatter`.
+    :param style: Passed on to :py:class:`logging.Formatter`.
+    :param validate: Passed on to :py:class:`logging.Formatter`.
+    :param defaults: Passed on to :py:class:`logging.Formatter`.
+    :param pre_formatters: Functions which rewrite the message of records
+        of a given logger, as a mapping of logger name to a sequence of
+        functions. Each item is either a callable taking and returning a
+        :py:class:`str`, or a dotted path to one, such as
+        ``"gouge.preformatters.uvicorn_access"``. Paths are imported once
+        when the formatter is created, which makes this option usable from
+        :py:func:`logging.config.dictConfig` and YAML files. An invalid path
+        raises :py:class:`ValueError` naming it. The ``pre_formatters``
+        attribute always holds callables.
     :params show_threads: Whether to display thread names or not.
     :params show_exc: Whether to display tracebacks or not.
     :params highlighted_path: Local filenames below this path are highlighted
@@ -63,6 +142,10 @@ class Simple(logging.Formatter):
         )
         # ... WARNING    [app] Order created correlation_id=4bf92f35 order.id=42
 
+    With :py:func:`logging.config.dictConfig`, use for example
+    ``{"()": "gouge.colourcli.Simple", "pre_formatters":
+    {"uvicorn.access": ["gouge.preformatters.uvicorn_access"]}}``.
+
     .. note:: This formatter *suppresses* tracebacks by default! Remember that
         is is meant to give a concise, readable output. If you need to see
         tracebacks on the console, you can override this setting using
@@ -80,14 +163,18 @@ class Simple(logging.Formatter):
         highlighted_path: Path | None = None,
         *,
         show_extra: bool | Sequence[str] = False,
+        pre_formatters: (
+            Mapping[str, Sequence[Callable[[str], str] | str]] | None
+        ) = None,
         **kwargs: Any,
     ) -> list[Handler]:
         """
         Convenience method to have a one-liner set-up.
 
-        *show_exc*, *show_threads*, *show_pid*, *force_styling* and
-        *show_extra* are directly passed to :py:class:`~.Simple`. The
-        remaining *kwargs* are passed on to :py:func:`logging.basicConfig`.
+        *show_exc*, *show_threads*, *show_pid*, *force_styling*,
+        *show_extra* and *pre_formatters* are directly passed to
+        :py:class:`~.Simple`. The remaining *kwargs* are passed on to
+        :py:func:`logging.basicConfig`.
 
         If *highlighted_path* is set, it will highlight local filenames in
         tracebacks. This is useful if you want to highlight the current working
@@ -123,6 +210,7 @@ class Simple(logging.Formatter):
                     force_styling=force_styling,
                     highlighted_path=highlighted_path,
                     show_extra=show_extra,
+                    pre_formatters=pre_formatters,
                 )
             )
             output.append(handler)
@@ -140,7 +228,9 @@ class Simple(logging.Formatter):
         show_threads: bool = False,
         force_styling: bool = False,
         show_pid: bool = False,
-        pre_formatters: dict[str, list[Callable[[str], str]]] | None = None,
+        pre_formatters: (
+            Mapping[str, Sequence[Callable[[str], str] | str]] | None
+        ) = None,
         highlighted_path: Path | None = None,
         show_extra: bool | Sequence[str] = False,
     ) -> None:
@@ -151,7 +241,10 @@ class Simple(logging.Formatter):
         self.show_exc = show_exc
         self.force_styling = force_styling
         self.show_pid = show_pid
-        self.pre_formatters = pre_formatters or {}
+        self.pre_formatters = {
+            name: [_resolve_pre_formatter(item) for item in items]
+            for name, items in (pre_formatters or {}).items()
+        }
         self.show_extra: bool | tuple[str, ...]
         if isinstance(show_extra, str):
             self.show_extra = (show_extra,)
