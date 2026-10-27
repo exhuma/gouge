@@ -1,5 +1,6 @@
 import io
 import logging
+from collections.abc import Iterator
 from functools import partial
 
 import pytest
@@ -12,7 +13,7 @@ SimpleRecord = partial(
 
 
 @pytest.fixture
-def reset_logging():
+def reset_logging() -> Iterator[None]:
     try:
         yield
     finally:
@@ -24,7 +25,7 @@ def reset_logging():
             del logger.filters[:]
 
 
-def test_noshift():
+def test_noshift() -> None:
     """
     A default instance should not shift anything
     """
@@ -34,7 +35,7 @@ def test_noshift():
     assert record.levelno == logging.DEBUG
 
 
-def test_noshift_unmatching():
+def test_noshift_unmatching() -> None:
     """
     If the name does not match, no shifting should occur.
     """
@@ -44,7 +45,7 @@ def test_noshift_unmatching():
     assert record.levelno == logging.DEBUG
 
 
-def test_noshift_parent():
+def test_noshift_parent() -> None:
     """
     Parent nodes should not be shifted.
     """
@@ -54,7 +55,7 @@ def test_noshift_parent():
     assert record.levelno == logging.DEBUG
 
 
-def test_shift_fullmatch():
+def test_shift_fullmatch() -> None:
     """
     If the name matches exactly, we should shift
     """
@@ -64,7 +65,7 @@ def test_shift_fullmatch():
     assert record.levelno == logging.INFO
 
 
-def test_shift_child():
+def test_shift_child() -> None:
     """
     Child nodes should be shifted
     """
@@ -74,7 +75,7 @@ def test_shift_child():
     assert record.levelno == logging.INFO
 
 
-def test_shift_reversed():
+def test_shift_reversed() -> None:
     """
     We should also allow shifting in reverse.
     """
@@ -84,7 +85,7 @@ def test_shift_reversed():
     assert record.levelno == logging.DEBUG
 
 
-def test_shift_fine_grained():
+def test_shift_fine_grained() -> None:
     """
     Instead of shifting by levels, the user should be allowed to shift by an
     exact offset.
@@ -95,7 +96,7 @@ def test_shift_fine_grained():
     assert record.levelno == 2
 
 
-def test_shift_min():
+def test_shift_min() -> None:
     """
     We should never go below level.NOTSET
     """
@@ -105,7 +106,7 @@ def test_shift_min():
     assert record.levelno == logging.NOTSET
 
 
-def test_shift_max():
+def test_shift_max() -> None:
     """
     We also stop above logging.CRITICAL
     """
@@ -115,7 +116,7 @@ def test_shift_max():
     assert record.levelno == logging.CRITICAL
 
 
-def test_shift_custom_min():
+def test_shift_custom_min() -> None:
     """
     The user should have the option to refuse shifting below a certain
     level.
@@ -126,7 +127,7 @@ def test_shift_custom_min():
     assert record.levelno == logging.INFO
 
 
-def test_shift_custom_max():
+def test_shift_custom_max() -> None:
     """
     The user should have the option to refuse shifting above a certain
     level.
@@ -137,7 +138,7 @@ def test_shift_custom_max():
     assert record.levelno == logging.ERROR
 
 
-def test_shift_custom_min_outside_bounds():
+def test_shift_custom_min_outside_bounds() -> None:
     """
     We allow specifying a custom min value outside of the "standard" bounds.
     """
@@ -147,7 +148,7 @@ def test_shift_custom_min_outside_bounds():
     assert record.levelno == -10
 
 
-def test_shift_custom_max_outside_bounds():
+def test_shift_custom_max_outside_bounds() -> None:
     """
     We allow specifying a custom max value outside of the "standard" bounds.
     """
@@ -157,7 +158,7 @@ def test_shift_custom_max_outside_bounds():
     assert record.levelno == 60
 
 
-def test_attached_to_handler(reset_logging):
+def test_attached_to_handler(reset_logging: None) -> None:
     blob = io.StringIO()
     handler = logging.StreamHandler(blob)
     handler.setFormatter(logging.Formatter("%(levelno)s %(levelname)s %(msg)s"))
@@ -182,7 +183,7 @@ def test_attached_to_handler(reset_logging):
     assert lines == expected
 
 
-def test_attached_to_logger(reset_logging):
+def test_attached_to_logger(reset_logging: None) -> None:
     blob = io.StringIO()
     handler = logging.StreamHandler(blob)
     handler.setFormatter(logging.Formatter("%(levelno)s %(levelname)s %(msg)s"))

@@ -9,7 +9,7 @@ from logging import LogRecord
 from gouge.colourcli import Simple
 
 
-def test_format_record_red_exception():
+def test_format_record_red_exception() -> None:
     """
     If the message level is higher or equal than "ERROR" we want to see the
     esception as red text. For lower levels we use another color.
@@ -29,7 +29,7 @@ def test_format_record_red_exception():
     assert needle in output
 
 
-def test_format_record_grey_exception():
+def test_format_record_grey_exception() -> None:
     """
     If the message level is higher or equal than "ERROR" we want to see the
     esception as red text. For lower levels we use grey
@@ -49,7 +49,7 @@ def test_format_record_grey_exception():
     assert needle in output
 
 
-def test_show_pid():
+def test_show_pid() -> None:
     """
     Ensure the PID is visible if requested
     """
@@ -61,7 +61,7 @@ def test_show_pid():
     assert re.search(r"\[PID: \d+\s*\]", output)
 
 
-def test_dictconfig():
+def test_dictconfig() -> None:
     """
     Ensure that we can configure loggers with dictConfig while using gouge
     """
@@ -88,3 +88,15 @@ def test_dictconfig():
     import logging.config
 
     logging.config.dictConfig(config)
+
+
+def test_show_threads() -> None:
+    """
+    Ensure the thread name is shown when requested, and only then.
+    """
+    record = LogRecord(
+        "name", logging.DEBUG, "path", 42, "message", args={}, exc_info=None
+    )
+    record.threadName = "worker-7"
+    assert "worker-7" in Simple(show_threads=True).format(record)
+    assert "worker-7" not in Simple().format(record)

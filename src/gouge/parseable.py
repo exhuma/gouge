@@ -1,12 +1,40 @@
+"""
+Machine-readable log formatters.
+
+* :py:class:`CSVLog` writes one CSV row per record.
+* :py:class:`XMLLog` writes one ``<record>`` element per record.
+* :py:class:`JSONLog` writes one JSON object per line (JSON Lines),
+  including the *extra* attributes of the record. This is the format to
+  use for log aggregation.
+"""
+
 import csv
 import io
+import json
 import logging
-from typing import Any, Optional
+import math
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from typing import Any, Literal
+
+from gouge._record import cache_exc_text, extra_attributes
+
+
+def _basic_config(
+    formatter_class: type[logging.Formatter], **kwargs: Any
+) -> None:
+    """
+    Call :py:func:`logging.basicConfig` with *kwargs*, then set a
+    *formatter_class* formatter on every handler of the root logger.
+    """
+    logging.basicConfig(**kwargs)
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(formatter_class())
 
 
 class CSVLog(logging.Formatter):
     """
-    CSV formatter for python loggers.
+    CSV formatter: one row per record.
 
     The columns correspond to the following fields:
 
@@ -27,33 +55,54 @@ class CSVLog(logging.Formatter):
     * threadName
     * message
     * exc_text
+
+    :param fmt: Passed on to :py:class:`logging.Formatter`.
+    :param datefmt: Passed on to :py:class:`logging.Formatter`.
+    :param style: Passed on to :py:class:`logging.Formatter`.
+    :param validate: Passed on to :py:class:`logging.Formatter`.
+    :param defaults: Passed on to :py:class:`logging.Formatter`.
+
+    With :py:func:`logging.config.dictConfig`, use either
+    ``{"()": "gouge.parseable.CSVLog"}`` or
+    ``{"class": "gouge.parseable.CSVLog"}`` as the formatter.
     """
 
     @staticmethod
     def basicConfig(**kwargs: Any) -> None:
-        logging.basicConfig(**kwargs)
-        root = logging.getLogger()
-        for handler in root.handlers:
-            handler.setFormatter(CSVLog())
+        """
+        Call :py:func:`logging.basicConfig` with *kwargs*, then set a
+        :py:class:`CSVLog` formatter on every handler of the root logger.
+
+        :param kwargs: Passed on to :py:func:`logging.basicConfig`.
+        """
+        _basic_config(CSVLog, **kwargs)
 
     def __init__(
-        self, fmt: Optional[str] = None, datefmt: Optional[str] = None
+        self,
+        fmt: str | None = None,
+        datefmt: str | None = None,
+        style: Literal["%", "{", "$"] = "%",
+        validate: bool = True,
+        *,
+        defaults: Mapping[str, Any] | None = None,
     ) -> None:
-        logging.Formatter.__init__(self, fmt, datefmt)
+        super().__init__(
+            fmt, datefmt, style, validate=validate, defaults=defaults
+        )
         self.buffer = io.StringIO()
         self.writer = csv.writer(self.buffer)
 
     def format(self, record: logging.LogRecord) -> str:
+        """
+        Format *record* as one CSV row.
+
+        :param record: The record to format.
+        :returns: The row, without a trailing line break.
+        """
         record.message = record.getMessage()
 
-        if record.exc_info:
-            # Cache the traceback text to avoid converting it multiple times
-            # (it's constant anyway)
-            exc_text = getattr(record, "exc_text", "")
-            if not exc_text:
-                record.exc_text = self.formatException(record.exc_info)
-
-        exc_text = getattr(record, "exc_text", "")
+        cache_exc_text(record, self)
+        exc_text = record.exc_text
         message_items = [
             record.created,
             record.filename,
@@ -83,7 +132,7 @@ class CSVLog(logging.Formatter):
 
 class XMLLog(logging.Formatter):
     """
-    XML formatter for python loggers.
+    XML formatter: one ``<record>`` element per record.
 
     The records have the following schema::
 
@@ -106,34 +155,55 @@ class XMLLog(logging.Formatter):
             <message />
             <exc_text />
         </record>
+
+    :param fmt: Passed on to :py:class:`logging.Formatter`.
+    :param datefmt: Passed on to :py:class:`logging.Formatter`.
+    :param style: Passed on to :py:class:`logging.Formatter`.
+    :param validate: Passed on to :py:class:`logging.Formatter`.
+    :param defaults: Passed on to :py:class:`logging.Formatter`.
+
+    With :py:func:`logging.config.dictConfig`, use either
+    ``{"()": "gouge.parseable.XMLLog"}`` or
+    ``{"class": "gouge.parseable.XMLLog"}`` as the formatter.
     """
 
     @staticmethod
     def basicConfig(**kwargs: Any) -> None:
-        logging.basicConfig(**kwargs)
-        root = logging.getLogger()
-        for handler in root.handlers:
-            handler.setFormatter(XMLLog())
+        """
+        Call :py:func:`logging.basicConfig` with *kwargs*, then set a
+        :py:class:`XMLLog` formatter on every handler of the root logger.
+
+        :param kwargs: Passed on to :py:func:`logging.basicConfig`.
+        """
+        _basic_config(XMLLog, **kwargs)
 
     def __init__(
-        self, fmt: Optional[str] = None, datefmt: Optional[str] = None
+        self,
+        fmt: str | None = None,
+        datefmt: str | None = None,
+        style: Literal["%", "{", "$"] = "%",
+        validate: bool = True,
+        *,
+        defaults: Mapping[str, Any] | None = None,
     ) -> None:
-        logging.Formatter.__init__(self, fmt, datefmt)
+        super().__init__(
+            fmt, datefmt, style, validate=validate, defaults=defaults
+        )
         from xml.dom.minidom import Document
 
         self.doc = Document()
 
     def format(self, record: logging.LogRecord) -> str:
+        """
+        Format *record* as one ``<record>`` element.
+
+        :param record: The record to format.
+        :returns: The element as XML text.
+        """
         record.message = record.getMessage()
 
-        if record.exc_info:
-            # Cache the traceback text to avoid converting it multiple times
-            # (it's constant anyway)
-            exc_text = getattr(record, "exc_text", "")
-            if not exc_text:
-                record.exc_text = self.formatException(record.exc_info)
-
-        exc_text = getattr(record, "exc_text", "")
+        cache_exc_text(record, self)
+        exc_text = record.exc_text
         message_items = [
             ("created", record.created),
             ("filename", record.filename),
@@ -161,3 +231,180 @@ class XMLLog(logging.Formatter):
             element.appendChild(subelement)
         output: str = element.toxml()
         return output
+
+
+def _dumps(value: object) -> str:
+    """
+    Return *value* as compact JSON, with :py:class:`str` for the types JSON
+    does not know.
+    """
+    return json.dumps(
+        value, ensure_ascii=False, default=str, separators=(",", ":")
+    )
+
+
+def _finite(value: object, seen: frozenset[int] = frozenset()) -> object:
+    """
+    Return *value* with non-finite floats replaced by strings, also inside
+    lists, tuples and dictionaries.
+
+    :raises ValueError: On a circular reference.
+    """
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value).replace("inf", "Infinity").replace("nan", "NaN")
+    if isinstance(value, dict | list | tuple):
+        if id(value) in seen:
+            raise ValueError("Circular reference")
+        seen |= {id(value)}
+        if isinstance(value, dict):
+            return {key: _finite(item, seen) for key, item in value.items()}
+        return [_finite(item, seen) for item in value]
+    return value
+
+
+def _dumps_value(value: object) -> str:
+    """
+    Return *value* as strict JSON. Anything which cannot be serialised is
+    written as its :py:class:`str` instead of raising.
+    """
+    try:
+        return _dumps(_finite(value))
+    except (TypeError, ValueError, RecursionError):
+        return _dumps(str(value))
+
+
+class JSONLog(logging.Formatter):
+    """
+    JSON Lines formatter: one JSON object per record.
+
+    Each record becomes one compact JSON object on a single line (newlines
+    in values are escaped). Non-ASCII text is written as-is. The keys are,
+    in this order:
+
+    * ``timestamp``: the creation time of the record in UTC, as ISO 8601
+      with milliseconds, for example ``2026-10-27T13:34:48.899+00:00``.
+      UTC avoids ambiguous local times around daylight-saving changes.
+    * ``level``: the level name, for example ``INFO``.
+    * ``logger``: the logger name.
+    * ``message``: the message with its arguments merged in.
+    * every *extra* attribute of the record, sorted by name. Extra
+      attributes are those passed with ``extra={...}`` to a log call or set
+      by a filter; standard :py:class:`logging.LogRecord` attributes and
+      names starting with ``_`` are left out. The OpenTelemetry IDs
+      ``otelTraceID`` and ``otelSpanID`` become ``trace_id`` and
+      ``span_id`` when a span is active.
+    * ``exc_text``: the plain traceback, only if the record has exception
+      information. Like the standard formatter, it is cached on the
+      record.
+    * ``stack_info``: the stack, only if the record has one.
+
+    The keys above always win: an extra attribute with the same name as
+    one of them is written as ``extra.<name>`` instead (and dropped if that
+    name is taken as well).
+
+    The output is always strict JSON and :py:meth:`format` never raises
+    because of an extra attribute. Values which JSON cannot represent are
+    written as their :py:class:`str`. This includes non-finite floats
+    (``nan``, ``inf``), which become ``"NaN"``, ``"Infinity"`` and
+    ``"-Infinity"``, also when nested in lists or dictionaries. If a value
+    cannot be serialised at all (a dictionary with keys which are not
+    strings, numbers, booleans or ``None``, or a circular reference), the
+    :py:class:`str` of the whole value is written instead. Extra attributes
+    whose name is not a string are left out.
+
+    :param fmt: Ignored. Accepted so the formatter can be configured like
+        any :py:class:`logging.Formatter`.
+    :param datefmt: An optional :py:meth:`~datetime.datetime.strftime`
+        format for ``timestamp``. It is applied to the UTC time, so ``%z``
+        renders as ``+0000``.
+    :param style: Passed on to :py:class:`logging.Formatter`.
+    :param validate: Passed on to :py:class:`logging.Formatter`.
+    :param defaults: Passed on to :py:class:`logging.Formatter`.
+
+    Example, with a correlation ID which a filter put on the records:
+
+    >>> import logging
+    >>> from gouge.parseable import JSONLog
+    >>> class CorrelationFilter(logging.Filter):
+    ...     def filter(self, record):
+    ...         record.correlation_id = "4bf92f35"
+    ...         return True
+    >>> handler = logging.StreamHandler()
+    >>> handler.addFilter(CorrelationFilter())
+    >>> handler.setFormatter(JSONLog())
+    >>> logging.getLogger().addHandler(handler)
+    >>> logging.getLogger("app").warning(
+    ...     "Order created", extra={"order.id": 42}
+    ... )
+    {"timestamp":...,"correlation_id":"4bf92f35","order.id":42}
+
+    With :py:func:`logging.config.dictConfig`, use either
+    ``{"()": "gouge.parseable.JSONLog"}`` or
+    ``{"class": "gouge.parseable.JSONLog"}`` as the formatter.
+    """
+
+    #: The keys :py:class:`JSONLog` writes itself.
+    CORE_KEYS = frozenset(
+        {"timestamp", "level", "logger", "message", "exc_text", "stack_info"}
+    )
+
+    @staticmethod
+    def basicConfig(**kwargs: Any) -> None:
+        """
+        Call :py:func:`logging.basicConfig` with *kwargs*, then set a
+        :py:class:`JSONLog` formatter on every handler of the root logger.
+
+        :param kwargs: Passed on to :py:func:`logging.basicConfig`.
+        """
+        _basic_config(JSONLog, **kwargs)
+
+    def formatTime(
+        self, record: logging.LogRecord, datefmt: str | None = None
+    ) -> str:
+        """
+        Return the creation time of *record* in UTC.
+
+        :param record: The record to format.
+        :param datefmt: An optional
+            :py:meth:`~datetime.datetime.strftime` format. Without it, the
+            time is ISO 8601 with milliseconds and UTC offset.
+        :returns: The formatted time.
+        """
+        created = datetime.fromtimestamp(record.created, tz=UTC)
+        if datefmt:
+            return created.strftime(datefmt)
+        return created.isoformat(timespec="milliseconds")
+
+    def format(self, record: logging.LogRecord) -> str:
+        """
+        Format *record* as one line of JSON.
+
+        :param record: The record to format.
+        :returns: The JSON object, without a trailing newline.
+        """
+        record.message = record.getMessage()
+        payload: dict[str, object] = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.message,
+        }
+        for key, value in extra_attributes(record).items():
+            if key in self.CORE_KEYS:
+                key = f"extra.{key}"
+            payload.setdefault(key, value)
+
+        cache_exc_text(record, self)
+        if record.exc_text:
+            payload["exc_text"] = record.exc_text
+        if record.stack_info:
+            payload["stack_info"] = self.formatStack(record.stack_info)
+
+        return (
+            "{"
+            + ",".join(
+                f"{_dumps(key)}:{_dumps_value(value)}"
+                for key, value in payload.items()
+            )
+            + "}"
+        )
