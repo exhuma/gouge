@@ -51,10 +51,11 @@ class ShiftingFilter(logging.Filter):
         offset: int = 0,
     ) -> None:
         if offset and shift_by:
-            warn(  # noqa: B028
+            warn(
                 'You specified both "offset" and "shift_by"! "shift_by" '
                 "will be ignored!",
                 SyntaxWarning,
+                stacklevel=2,
             )
 
         if offset:
@@ -66,7 +67,7 @@ class ShiftingFilter(logging.Filter):
         self.min = min
         self.injected_loggers: set[logging.Logger] = set()
 
-    def inject(self, parent: str) -> None:
+    def inject(self, parent: str | logging.Logger) -> None:
         """
         Loop over each known logger and attach this filter.
 
@@ -80,6 +81,8 @@ class ShiftingFilter(logging.Filter):
             loggers using ``logging.Logger.manager.loggerDict``.
 
         :param parent: Attach the filter to this and all descendant loggers.
+            Either a logger name or a :py:class:`logging.Logger` instance (its
+            name is used).
         """
         if not isinstance(parent, str):
             parent = parent.name

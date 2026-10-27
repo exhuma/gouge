@@ -20,6 +20,10 @@ class Simple(logging.Formatter):
 
     :params show_threads: Whether to display thread names or not.
     :params show_exc: Whether to display tracebacks or not.
+    :params highlighted_path: Local filenames below this path are highlighted
+        in tracebacks. An explicitly given path always wins. If it is not
+        given, ``<cwd>/src`` is used as the default when that directory
+        exists, otherwise nothing is highlighted.
 
     .. note:: This formatter *suppresses* tracebacks by default! Remember that
         is is meant to give a concise, readable output. If you need to see
@@ -47,8 +51,9 @@ class Simple(logging.Formatter):
 
         If *highlighted_path* is set, it will highlight local filenames in
         tracebacks. This is useful if you want to highlight the current working
-        directory. If a "src" directory exists in the current working directory,
-        it will be used as the default.
+        directory. An explicitly given *highlighted_path* always wins. Only if
+        it is not given and a "src" directory exists in the current working
+        directory, that directory is used as the default.
 
         After returning from :py:func:`logging.basicConfig`, it will fetch the
         *stderr* and *stdout* handlers and replace the formatter.
@@ -75,6 +80,7 @@ class Simple(logging.Formatter):
                     show_exc=show_exc,
                     show_threads=show_threads,
                     show_pid=show_pid,
+                    force_styling=force_styling,
                     highlighted_path=highlighted_path,
                 )
             )
@@ -105,12 +111,12 @@ class Simple(logging.Formatter):
         self.show_pid = show_pid
         self.pre_formatters = pre_formatters or {}
         self.highlighted_path: Path | None
-        if (Path.cwd() / "src").exists():
+        if highlighted_path is not None:
+            self.highlighted_path = highlighted_path.absolute()
+        elif (Path.cwd() / "src").exists():
             self.highlighted_path = (Path.cwd() / "src").absolute()
-        elif highlighted_path is not None:
-            self.highlighted_path = (highlighted_path).absolute()
         else:
-            self.highlighted_path = highlighted_path
+            self.highlighted_path = None
 
     def format(self, record: LogRecord) -> str:
         if record.levelno <= logging.DEBUG:
