@@ -9,7 +9,7 @@ from logging import LogRecord
 from gouge.colourcli import Simple
 
 
-def test_format_record_red_exception():
+def test_format_record_red_exception() -> None:
     """
     If the message level is higher or equal than "ERROR" we want to see the
     esception as red text. For lower levels we use another color.
@@ -29,7 +29,7 @@ def test_format_record_red_exception():
     assert needle in output
 
 
-def test_format_record_grey_exception():
+def test_format_record_grey_exception() -> None:
     """
     If the message level is higher or equal than "ERROR" we want to see the
     esception as red text. For lower levels we use grey
@@ -49,7 +49,7 @@ def test_format_record_grey_exception():
     assert needle in output
 
 
-def test_show_pid():
+def test_show_pid() -> None:
     """
     Ensure the PID is visible if requested
     """
@@ -61,7 +61,7 @@ def test_show_pid():
     assert re.search(r"\[PID: \d+\s*\]", output)
 
 
-def test_dictconfig():
+def test_dictconfig() -> None:
     """
     Ensure that we can configure loggers with dictConfig while using gouge
     """

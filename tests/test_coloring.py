@@ -16,7 +16,7 @@ from gouge.colourcli import Simple
         (logging.CRITICAL, "\x1b[41mCRITICAL"),
     ],
 )
-def test_debug(level, color_code):
+def test_debug(level: int, color_code: str) -> None:
     fmt = Simple(force_styling=True)
     record = LogRecord("name", level, "pathname", 1, "msg", (), None)
     result = fmt.format(record)

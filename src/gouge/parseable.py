@@ -1,7 +1,7 @@
 import csv
 import io
 import logging
-from typing import Any, Optional
+from typing import Any
 
 
 class CSVLog(logging.Formatter):
@@ -37,7 +37,7 @@ class CSVLog(logging.Formatter):
             handler.setFormatter(CSVLog())
 
     def __init__(
-        self, fmt: Optional[str] = None, datefmt: Optional[str] = None
+        self, fmt: str | None = None, datefmt: str | None = None
     ) -> None:
         logging.Formatter.__init__(self, fmt, datefmt)
         self.buffer = io.StringIO()
@@ -116,7 +116,7 @@ class XMLLog(logging.Formatter):
             handler.setFormatter(XMLLog())
 
     def __init__(
-        self, fmt: Optional[str] = None, datefmt: Optional[str] = None
+        self, fmt: str | None = None, datefmt: str | None = None
     ) -> None:
         logging.Formatter.__init__(self, fmt, datefmt)
         from xml.dom.minidom import Document

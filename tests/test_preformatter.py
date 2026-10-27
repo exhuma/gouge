@@ -11,7 +11,7 @@ def _dummy_preformatter(message: str) -> str:
     return "modified-message"
 
 
-def test_preformatter():
+def test_preformatter() -> None:
     record = LogRecord(
         "the.logger",
         logging.INFO,
@@ -29,7 +29,7 @@ def test_preformatter():
 
 
 @pytest.mark.parametrize("status_code", ["100", "200", "300", "400", "500"])
-def test_uvicorn_access(status_code: str):
+def test_uvicorn_access(status_code: str) -> None:
     result = pf.uvicorn_access(
         f'127.0.0.1:43522 - "GET /foo/bar HTTP/1.1" {status_code}'
     )
@@ -41,6 +41,6 @@ def test_uvicorn_access(status_code: str):
     assert str(status_code) in result
 
 
-def test_uvicorn_access_default():
+def test_uvicorn_access_default() -> None:
     result = pf.uvicorn_access("invalid-line-format")
     assert result == "invalid-line-format"

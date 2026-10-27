@@ -1,8 +1,8 @@
 """
 This module contains generally useful filters.
 """
+
 import logging
-from typing import Set
 from warnings import warn
 
 
@@ -51,7 +51,7 @@ class ShiftingFilter(logging.Filter):
         offset: int = 0,
     ) -> None:
         if offset and shift_by:
-            warn(
+            warn(  # noqa: B028
                 'You specified both "offset" and "shift_by"! "shift_by" '
                 "will be ignored!",
                 SyntaxWarning,
@@ -64,7 +64,7 @@ class ShiftingFilter(logging.Filter):
         self.logger = logger
         self.max = max
         self.min = min
-        self.injected_loggers: Set[logging.Logger] = set()
+        self.injected_loggers: set[logging.Logger] = set()
 
     def inject(self, parent: str) -> None:
         """

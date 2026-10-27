@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # gouge documentation build configuration file, created by
 # sphinx-quickstart on Wed Sep  9 11:30:24 2015.

@@ -4,10 +4,10 @@ This module contains everything needed to emit colourful messages on the CLI
 
 import logging
 import re
-import sys
+from collections.abc import Callable, Mapping
 from logging import Handler, LogRecord
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Literal
 
 import colorama as clr
 
@@ -27,7 +27,7 @@ class Simple(logging.Formatter):
         *show_exc*.
     """
 
-    pre_formatters: Dict[str, List[Callable[[str], str]]]
+    pre_formatters: dict[str, list[Callable[[str], str]]]
 
     @staticmethod
     def basicConfig(
@@ -35,9 +35,9 @@ class Simple(logging.Formatter):
         show_threads: bool = False,
         force_styling: bool = False,
         show_pid: bool = False,
-        highlighted_path: Optional[Path] = None,
+        highlighted_path: Path | None = None,
         **kwargs: Any,
-    ) -> List[Handler]:
+    ) -> list[Handler]:
         """
         Convenience method to have a one-liner set-up.
 
@@ -83,30 +83,28 @@ class Simple(logging.Formatter):
 
     def __init__(
         self,
-        fmt: Optional[str] = None,
-        datefmt: Optional[str] = None,
-        style: str = "%",
+        fmt: str | None = None,
+        datefmt: str | None = None,
+        style: Literal["%", "{", "$"] = "%",
         validate: bool = True,
         *,
-        defaults: Optional[Mapping[str, Any]] = None,
+        defaults: Mapping[str, Any] | None = None,
         show_exc: bool = False,
         show_threads: bool = False,
         force_styling: bool = False,
         show_pid: bool = False,
-        pre_formatters: Optional[Dict[str, List[Callable[[str], str]]]] = None,
-        highlighted_path: Optional[Path] = None,
-    ):
-        python_310_args = {"defaults": defaults, "validate": validate}
-        if sys.version_info < (3, 10):
-            python_310_args.pop("defaults")
-        if sys.version_info < (3, 8):
-            python_310_args.pop("validate")
-        super().__init__(fmt, datefmt, style, **python_310_args)
+        pre_formatters: dict[str, list[Callable[[str], str]]] | None = None,
+        highlighted_path: Path | None = None,
+    ) -> None:
+        super().__init__(
+            fmt, datefmt, style, validate=validate, defaults=defaults
+        )
         self.show_threads = show_threads
         self.show_exc = show_exc
         self.force_styling = force_styling
         self.show_pid = show_pid
         self.pre_formatters = pre_formatters or {}
+        self.highlighted_path: Path | None
         if (Path.cwd() / "src").exists():
             self.highlighted_path = (Path.cwd() / "src").absolute()
         elif highlighted_path is not None:
@@ -173,7 +171,9 @@ class Simple(logging.Formatter):
             levelcolor=colorize, f=clr.Fore, s=clr.Style, **vars(record)
         )
 
-    def formatException(self, exc_info: tuple, exc_color: str) -> str:
+    def formatException(  # type: ignore[override]
+        self, exc_info: Any, exc_color: str
+    ) -> str:
         exc_text = super().formatException(exc_info)
         if "{" in exc_text or "}" in exc_text:
             exc_text = exc_text.replace("{", "{{").replace("}", "}}")
@@ -182,7 +182,7 @@ class Simple(logging.Formatter):
 
         pth = self.highlighted_path
 
-        def highlight_local_filenames(match: re.Match) -> str:
+        def highlight_local_filenames(match: re.Match[str]) -> str:
             filename = Path(match.group(1)).absolute()
             if filename.is_relative_to(pth):
                 return match.group(0).replace(

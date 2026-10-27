@@ -1,6 +1,6 @@
 import re
 
-from gouge.colourcli import clr
+import colorama as clr
 
 P_UVICORN_ACCESS = re.compile(
     r'^(?P<remote_host>\S+) - "'
