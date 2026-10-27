@@ -113,3 +113,17 @@ def test_conflicting_arguments_warn_at_caller() -> None:
     assert len(caught) == 1
     assert caught[0].category is SyntaxWarning
     assert caught[0].filename == __file__
+
+
+@pytest.mark.parametrize("name", ["s", "f", "levelcolor"])
+def test_extra_named_like_template_helper(name: str) -> None:
+    """
+    Ensure an extra attribute named like a template helper does not break
+    formatting and does not change the output.
+    """
+    record = logging.LogRecord(
+        "name", logging.INFO, "path", 1, "hello", None, None
+    )
+    expected = Simple().format(record)
+    setattr(record, name, "boom")
+    assert Simple().format(record) == expected

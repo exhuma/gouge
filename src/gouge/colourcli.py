@@ -151,8 +151,15 @@ class Simple(logging.Formatter):
             )
 
         message_template = " ".join(message_items)
-        output = message_template.format(
-            levelcolor=colorize, f=clr.Fore, s=clr.Style, **vars(record)
+        # The record goes first: an extra attribute named like one of the
+        # template helpers must not break formatting.
+        output = message_template.format_map(
+            {
+                **vars(record),
+                "levelcolor": colorize,
+                "f": clr.Fore,
+                "s": clr.Style,
+            }
         )
 
         if self.show_exc:
