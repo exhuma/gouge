@@ -1,302 +1,160 @@
-Welcome to gouge's documentation!
-=================================
+gouge
+=====
 
+Formatters for the Python :mod:`logging` module. gouge gives console output
+a uniform, coloured layout that is easy to scan, and writes the same
+records as JSON Lines, CSV or XML for machines. It works with the standard
+library alone: no wrapper API, no new logger class. Its only dependency is
+`colorama <https://pypi.org/project/colorama/>`_.
+
+Install
+-------
+
+.. code-block:: console
+
+   $ pip install gouge
+
+gouge needs Python 3.11 or newer.
+
+Example
+-------
+
+Set up the root logger with
+:meth:`Simple.basicConfig <gouge.colourcli.Simple.basicConfig>`, then log
+as usual:
+
+>>> import logging
+>>> from gouge.colourcli import Simple
+>>> handlers = Simple.basicConfig(
+...     level=logging.DEBUG
+... )
+>>> log = logging.getLogger("app")
+>>> log.info("Server started")
+2026-10-27 13:34:48,899 INFO       [app] Server started
+>>> log.warning("Disk 91% full")
+2026-10-27 13:34:48,899 WARNING    [app] Disk 91% full
+
+On a terminal, the level, logger name and tracebacks are coloured:
 
 .. figure:: _static/snapshot1.png
-    :alt: Example screenshot
+   :alt: Console output of gouge: time stamps in green, the level names
+      DEBUG in grey, INFO in cyan, WARNING in yellow, ERROR in red and
+      CRITICAL in yellow on red, logger names in bold, and a traceback in
+      red.
 
-    Example screenshot using the ``colourcli.Simple`` formatter.
+   Output of :class:`~gouge.colourcli.Simple` in a terminal.
 
+Features
+--------
 
-Quick Facts
------------
+Readable console output
+   :class:`~gouge.colourcli.Simple` aligns the level names, colours each
+   level, puts the logger name in brackets and colours tracebacks, with
+   file names of your own code highlighted.
 
-What
-    Canned logging setups.
+Configuration files
+   Every option works from :func:`logging.config.dictConfig` and YAML
+   files, including pre-formatters given as dotted paths. No subclass is
+   needed.
 
-Who
-    http://michel.albert.lu
+Extra attributes
+   Attributes passed with ``extra={...}`` or set by a filter, such as a
+   correlation ID, are appended as ``key=value`` pairs with
+   ``show_extra``.
 
-When
-    Initial commit: 2015-09-09
+Structured output
+   :class:`~gouge.parseable.JSONLog` writes one JSON object per line,
+   extra attributes and OpenTelemetry trace IDs included.
+   :class:`~gouge.parseable.CSVLog` and :class:`~gouge.parseable.XMLLog`
+   write CSV and XML.
 
-Where
-    * https://pypi.python.org/pypi/gouge
-    * https://github.com/exhuma/gouge
+uvicorn support
+   :func:`~gouge.uvicorn.capture_uvicorn` routes uvicorn's records through
+   your handlers, and :func:`~gouge.preformatters.uvicorn_access` colours
+   its access log.
 
-Why
-    Because I want to the same log behaviour across all of my applications.
+Colour control
+   ``NO_COLOR`` and ``FORCE_COLOR`` are honoured. Without them, colour is
+   stripped when the output is not a terminal.
 
+Level shifting
+   :class:`~gouge.filters.ShiftingFilter` raises or lowers the level of
+   records from a noisy library.
 
-Installation
-------------
+Project status
+--------------
 
-::
+gouge is actively maintained and stable (Development Status
+"Production/Stable"). The API has been stable since 2.0. See
+`Compatibility`_ for the versioning and deprecation policy.
 
-    $ pip install gouge
+Compatibility
+-------------
 
+gouge follows `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
+It supports the CPython versions which have not reached their end of life
+(see `endoflife.date <https://endoflife.date/python>`_), currently 3.11 to
+3.15, the versions in ``requires-python`` and the package classifiers. When
+a Python version reaches its end of life, the next minor release may raise
+the minimum version.
 
-Background
-----------
+A change is breaking when it can make working user code fail or behave
+differently. This includes:
 
-``gouge`` started off as a way to share logging formatters across all my
-applications. Starting with version 1.2, it now also contains the
-:py:class:`gouge.filter.ShiftingFilter <first filter>`. Again, to share the
-same behaviour across applications.
+- removing or renaming a public name, parameter or attribute,
+- changing the layout of a formatter's output, such as the order of its
+  fields or the names of its keys,
+- raising an exception where the code did not raise before,
+- changing a return type.
 
-It is very "thin", and has no dependencies other than :py:mod:`blessings`.
-:py:mod:`blessings` is only used for formatting (colour, bold, …) and it does
-not have any external dependencies itself. At least not at the time of this
-writing.
+Breaking changes are released only in a major version. Before gouge removes
+anything, a minor release deprecates it: the old name emits a
+:class:`DeprecationWarning`, and the :doc:`changelog` names the
+replacement. The removal comes no earlier than the next major release.
 
-I have a fair amount of applications which log to the console. While the
-default formatting given by :py:func:`logging.basicConfig()` is usable, I
-always end up modifying it. Mostly just adding horizontal whitespace to make it
-more readable. Adding colour helps, and I've added it to some projects. My
-co-workers are in the same boat, and we end up copy/pasting logging formatters
-all over the place. The end-result: All projects have a slightly different
-formatting.
+Contents
+--------
 
-The aims of ``gouge`` are:
+:doc:`getting-started`
+   Console output with :class:`~gouge.colourcli.Simple` and its options.
 
-* be a repository of simple drop-in (and reusable) logging formatters.
-* have a more uniform looking output across multiple applications.
-* make formatting of the logs a simple one-liner.
-* provide additional functionality complementing the standard logging
-  framework.
+:doc:`configuring`
+   Configure gouge with :func:`logging.config.dictConfig` or a YAML file.
 
+:doc:`pre-formatters`
+   Rewrite the messages of a logger before they are formatted.
 
-Why the name "gouge"?
----------------------
+:doc:`extra-attributes`
+   Show extra attributes and correlation IDs.
 
-A "gouge_" is a type of chisel. A tool used in woodworking. And as this module
-applies some style to the "logging" module, I found this an appropriate name
-for the project. As "chisel" is already taken as a Python module, this was the
-next best choice.
+:doc:`structured-output`
+   Write JSON Lines, CSV or XML.
 
-.. _gouge: https://en.wikipedia.org/wiki/Chisel#Gouge
+:doc:`uvicorn`
+   Format uvicorn's server and access logs.
 
+:doc:`colour`
+   Switch colour on or off.
 
-Examples
-========
+:doc:`shifting-levels`
+   Change the level of records from a library.
 
-Simple Usage example
---------------------
+:doc:`api/index`
+   Every public module, class and function.
 
-::
-
-    import logging
-    from gouge.colourcli import Simple
-    Simple.basicConfig(level=logging.DEBUG)
-
-    logging.info('Hello World!')
-
-
-In this case, :py:meth:`~gouge.colourcli.Simple.basicConfig` is directly passed
-on to :py:meth:`logging.basicConfig` but will pepper things up by overriding
-the ``format`` argument of the defaul ``basicConfig`` implementation.
-
-
-Manual Usage
-------------
-
-::
-
-    import logging
-
-    from gouge.colourcli import Simple
-
-
-    LOG = logging.getLogger()
-    handler = logging.StreamHandler()
-    handler.setFormatter(Simple())
-
-    LOG.setLevel(logging.DEBUG)
-    LOG.addHandler(handler)
-    LOG.debug('hello')
-    LOG.info('hello')
-    LOG.warning('hello')
-    LOG.error('hello')
-
-
-Usage with dictConfig
----------------------
-
-When using ``dictConfig``, you can use the ``gouge.colourcli.Simple`` formatter as class:
-
-.. code-block:: python
-
-    import logging
-
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "myFormatter": {
-                "()": "gouge.colourcli.Simple",
-                "show_exc": True,
-                "show_threads": True,
-                "show_pid": True,
-            },
-        },
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "formatter": "myFormatter",
-            },
-        },
-        "loggers": {
-            "": {
-                "handlers": ["console"],
-                'level": "DEBUG",
-            },
-        },
-    }
-
-    logging.config.dictConfig(LOGGING)
-    logging.debug("hello")
-    logging.info("hello")
-    logging.warning("hello")
-    logging.error("hello")
-
-
-
-Caveats
-=======
-
-You should be aware, that the ``basicConfig`` methods are fairly intrusive.
-They first call :py:func:`logging.basicConfig()`, then look for every
-``stdout`` and every ``stderr`` handler attached to the root logger and replace
-their formatter.
-
-
-Themes
-======
-
-Currently I only use the :py:class:`~gouge.colourcli.Simple` theme. I may or
-may not add new themes to the project. I am open for pull-requests as long as
-they don't include hefty dependencies!
-
-As sort of a "demo", I also added :py:class:`~gouge.parseable.CSVLog` and
-:py:class:`~gouge.parseable.XMLLog`.
-
-
-Pre-Formatters
-==============
-
-.. versionadded:: 2.1
-
-To modify the message-string *before* it is formatted by *gouge* you can pass
-the ``pre_formatters`` argument to the :py:class:`gouge.colourcli.Simple`
-constructor.
-
-This can turn something like this:
-
-.. figure:: _static/pre-formatter-not-applied.png
-    :alt: Pre-Formatter not applied
-
-    This shows the default output. The "message" has a single color.
-
-into this:
-
-.. figure:: _static/pre-formatter-applied.png
-    :alt: Pre-Formatter applied
-
-    This shows an output with a custom formatter applied to the message alone.
-
-Gouge comes (at the time of this writing) with a bundled formatter for the
-``uvicorn.access`` logger (as displayed above). See
-:py:mod:`gouge.preformatters` for a sample implementation.
-
-
-Applying Pre-Formatters
------------------------
-
-Pre-formatters are passed as a dictionary mapping from logger-names to
-a list of formatting functions (callables). The functions take the raw message
-as input and must return the formatted message.
-
-Pre-formatters for a logger are applied in sequence.
-
-.. code-block:: python
-    :caption: Pre-Formatter Example
-
-    from gouge.colourcli import Simple
-
-    def my_preformatter(message: str) -> str:
-        return message.upper()
-
-    my_log_formatter = Simple(pre_formatters={"my.logger": [my_preformatter]})
-
-Using Pre-Formatters With dictConfig
--------------------------------------
-
-This example demostrates the use of the builtin ``uvicorn_access``
-pre-formatter.
-
-When using :py:func:`logging.config.dictConfig`, you can provide a subclass of
-``Simple()`` as so:
-
-.. code-block:: python
-    :caption: Pre-Formatter for log-config files
-
-    from gouge.preformatters import uvicorn_access
-
-    class MyFormatter(Simple):
-        def __init__(self, *args, **kwargs):
-            super().__init__(
-                *args,
-                pre_formatters={
-                    "uvicorn.access": [uvicorn_access]
-                },
-                **kwargs,
-            )
-
-
-and then use it in the log-config as so:
-
-.. code-block:: yaml
-    :caption: Example config for dictConfig
-
-    ---
-    version: 1
-    root:
-      level: DEBUG
-      handlers:
-        - console
-    loggers:
-      # uvicorn loggers are pretty silent by default. We set some of them to INFO.
-      # This will make the messages (which are usfeul during development) appear in
-      # the console.
-      # uvicorn.error contains startup messages.
-      uvicorn.error:
-        level: INFO
-      # uvicorn.access contains access logs.
-      uvicorn.access:
-        level: INFO
-    handlers:
-      console:
-        class : logging.StreamHandler
-        formatter: gouge
-    formatters:
-      gouge:
-        class: "powonline.logging.LogFormatter"
-
-
-
-Module Contents
-===============
+:doc:`changelog`
+   Changes in every release.
 
 .. toctree::
-   :maxdepth: 4
+   :hidden:
 
+   getting-started
+   configuring
+   pre-formatters
+   extra-attributes
+   structured-output
+   uvicorn
+   colour
+   shifting-levels
+   api/index
    changelog
-   API <api/modules>
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

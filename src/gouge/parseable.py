@@ -33,7 +33,7 @@ def _basic_config(
 
 class CSVLog(logging.Formatter):
     """
-    CSV formatter for python loggers.
+    CSV formatter: one row per record.
 
     The columns correspond to the following fields:
 
@@ -68,6 +68,12 @@ class CSVLog(logging.Formatter):
 
     @staticmethod
     def basicConfig(**kwargs: Any) -> None:
+        """
+        Call :py:func:`logging.basicConfig` with *kwargs*, then set a
+        :py:class:`CSVLog` formatter on every handler of the root logger.
+
+        :param kwargs: Passed on to :py:func:`logging.basicConfig`.
+        """
         _basic_config(CSVLog, **kwargs)
 
     def __init__(
@@ -86,6 +92,12 @@ class CSVLog(logging.Formatter):
         self.writer = csv.writer(self.buffer)
 
     def format(self, record: logging.LogRecord) -> str:
+        """
+        Format *record* as one CSV row.
+
+        :param record: The record to format.
+        :returns: The row, without a trailing line break.
+        """
         record.message = record.getMessage()
 
         cache_exc_text(record, self)
@@ -119,7 +131,7 @@ class CSVLog(logging.Formatter):
 
 class XMLLog(logging.Formatter):
     """
-    XML formatter for python loggers.
+    XML formatter: one ``<record>`` element per record.
 
     The records have the following schema::
 
@@ -156,6 +168,12 @@ class XMLLog(logging.Formatter):
 
     @staticmethod
     def basicConfig(**kwargs: Any) -> None:
+        """
+        Call :py:func:`logging.basicConfig` with *kwargs*, then set a
+        :py:class:`XMLLog` formatter on every handler of the root logger.
+
+        :param kwargs: Passed on to :py:func:`logging.basicConfig`.
+        """
         _basic_config(XMLLog, **kwargs)
 
     def __init__(
@@ -175,6 +193,12 @@ class XMLLog(logging.Formatter):
         self.doc = Document()
 
     def format(self, record: logging.LogRecord) -> str:
+        """
+        Format *record* as one ``<record>`` element.
+
+        :param record: The record to format.
+        :returns: The element as XML text.
+        """
         record.message = record.getMessage()
 
         cache_exc_text(record, self)
@@ -210,7 +234,7 @@ class XMLLog(logging.Formatter):
 
 class JSONLog(logging.Formatter):
     """
-    JSON Lines formatter for python loggers.
+    JSON Lines formatter: one JSON object per record.
 
     Each record becomes one compact JSON object on a single line (newlines
     in values are escaped). Non-ASCII text is written as-is. The keys are,
@@ -236,7 +260,7 @@ class JSONLog(logging.Formatter):
     The keys above always win: an extra attribute with the same name as
     one of them is written as ``extra.<name>`` instead (and dropped if that
     name is taken as well). Values which JSON cannot represent are written
-    as their :py:func:`str`.
+    as their :py:class:`str`.
 
     :param fmt: Ignored. Accepted so the formatter can be configured like
         any :py:class:`logging.Formatter`.
@@ -249,29 +273,20 @@ class JSONLog(logging.Formatter):
 
     Example, with a correlation ID which a filter put on the records:
 
-    .. code-block:: python
-
-        import logging
-
-        from gouge.parseable import JSONLog
-
-
-        class CorrelationFilter(logging.Filter):
-            def filter(self, record: logging.LogRecord) -> bool:
-                record.correlation_id = "4bf92f35"
-                return True
-
-
-        handler = logging.StreamHandler()
-        handler.addFilter(CorrelationFilter())
-        handler.setFormatter(JSONLog())
-        logging.getLogger().addHandler(handler)
-        logging.getLogger("app").warning(
-            "Order created", extra={"order.id": 42}
-        )
-        # {"timestamp":"2026-10-27T13:34:48.899+00:00","level":"WARNING",
-        #  "logger":"app","message":"Order created",
-        #  "correlation_id":"4bf92f35","order.id":42}  (one line)
+    >>> import logging
+    >>> from gouge.parseable import JSONLog
+    >>> class CorrelationFilter(logging.Filter):
+    ...     def filter(self, record):
+    ...         record.correlation_id = "4bf92f35"
+    ...         return True
+    >>> handler = logging.StreamHandler()
+    >>> handler.addFilter(CorrelationFilter())
+    >>> handler.setFormatter(JSONLog())
+    >>> logging.getLogger().addHandler(handler)
+    >>> logging.getLogger("app").warning(
+    ...     "Order created", extra={"order.id": 42}
+    ... )
+    {"timestamp":...,"correlation_id":"4bf92f35","order.id":42}
 
     With :py:func:`logging.config.dictConfig`, use either
     ``{"()": "gouge.parseable.JSONLog"}`` or
@@ -286,8 +301,6 @@ class JSONLog(logging.Formatter):
     @staticmethod
     def basicConfig(**kwargs: Any) -> None:
         """
-        Convenience method to have a one-liner set-up.
-
         Call :py:func:`logging.basicConfig` with *kwargs*, then set a
         :py:class:`JSONLog` formatter on every handler of the root logger.
 

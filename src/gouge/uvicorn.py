@@ -22,9 +22,9 @@ def capture_uvicorn(
 
     uvicorn installs its own handlers on its loggers and stops them from
     propagating, so the formatter configured on the root logger (for
-    example with :py:meth:`Simple.basicConfig`) never sees them. This
-    removes the handlers of *loggers* and enables propagation. uvicorn is
-    not imported.
+    example with :py:meth:`~gouge.colourcli.Simple.basicConfig`) never
+    sees them. This removes the handlers of *loggers* and enables
+    propagation. uvicorn is not imported.
 
     Call it **after** uvicorn configured its loggers, or uvicorn's setup
     undoes it: either call it in a startup hook of the application (for

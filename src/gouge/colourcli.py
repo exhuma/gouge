@@ -1,5 +1,5 @@
 """
-This module contains everything needed to emit colourful messages on the CLI
+Colourful, human-readable log output for the console.
 """
 
 import logging
@@ -92,13 +92,23 @@ def _level_colour(levelno: int) -> str:
 
 class Simple(logging.Formatter):
     """
-    Fancy, colorised log output adding ANSI escape codes to the log output.
+    Console formatter which colours the level, logger name and traceback of
+    each record with ANSI escape codes.
+
+    Each line holds the time, the level name, the logger name in brackets
+    and the message, optionally preceded by the process ID and thread name
+    and followed by *extra* attributes.
 
     :param fmt: Passed on to :py:class:`logging.Formatter`.
     :param datefmt: Passed on to :py:class:`logging.Formatter`.
     :param style: Passed on to :py:class:`logging.Formatter`.
     :param validate: Passed on to :py:class:`logging.Formatter`.
     :param defaults: Passed on to :py:class:`logging.Formatter`.
+    :param show_exc: Whether to append tracebacks to the message.
+    :param show_threads: Whether to prefix each line with the thread name.
+    :param force_styling: Emit colour codes even if ``NO_COLOR`` is set (see
+        below).
+    :param show_pid: Whether to prefix each line with the process ID.
     :param pre_formatters: Functions which rewrite the message of records
         of a given logger, as a mapping of logger name to a sequence of
         functions. Each item is either a callable taking and returning a
@@ -110,9 +120,7 @@ class Simple(logging.Formatter):
         ``"package.module.function"`` and ``"package.module:function"``
         work. An invalid path raises :py:class:`ValueError` naming it. The
         ``pre_formatters`` attribute always holds callables.
-    :params show_threads: Whether to display thread names or not.
-    :params show_exc: Whether to display tracebacks or not.
-    :params highlighted_path: Local filenames below this path are highlighted
+    :param highlighted_path: Local filenames below this path are highlighted
         in tracebacks. An explicitly given path always wins. If it is not
         given, ``<cwd>/src`` is used as the default when that directory
         exists, otherwise nothing is highlighted.
@@ -124,34 +132,28 @@ class Simple(logging.Formatter):
         does not start with ``_``, sorted by name. A sequence of names shows
         only those, in that order, and skips names the record does not have
         (a single string is taken as one name). Values are rendered with
-        :py:func:`str`, or with :py:func:`repr` if that is empty or contains
+        :py:class:`str`, or with :py:func:`repr` if that is empty or contains
         whitespace, so the pairs stay easy to parse. The OpenTelemetry IDs
         ``otelTraceID`` and ``otelSpanID`` are shown as ``trace_id`` and
         ``span_id`` when a span is active.
 
     Example, showing a correlation ID which a filter put on the records:
 
-    .. code-block:: python
-
-        import logging
-
-        from gouge.colourcli import Simple
-
-
-        class CorrelationFilter(logging.Filter):
-            def filter(self, record: logging.LogRecord) -> bool:
-                record.correlation_id = "4bf92f35"
-                return True
-
-
-        handler = logging.StreamHandler()
-        handler.addFilter(CorrelationFilter())
-        handler.setFormatter(Simple(show_extra=True))
-        logging.getLogger().addHandler(handler)
-        logging.getLogger("app").warning(
-            "Order created", extra={"order.id": 42}
-        )
-        # ... WARNING    [app] Order created correlation_id=4bf92f35 order.id=42
+    >>> import logging
+    >>> from gouge.colourcli import Simple
+    >>> class CorrelationFilter(logging.Filter):
+    ...     def filter(self, record):
+    ...         record.correlation_id = "4bf92f35"
+    ...         return True
+    >>> handler = logging.StreamHandler()
+    >>> handler.addFilter(CorrelationFilter())
+    >>> handler.setFormatter(Simple(show_extra=True))
+    >>> logging.getLogger().addHandler(handler)
+    >>> logging.getLogger("app").warning(
+    ...     "Order created", extra={"order.id": 42}
+    ... )  # doctest: +NORMALIZE_WHITESPACE
+    2026-10-27 13:34:48,899 WARNING    [app] Order created
+    correlation_id=4bf92f35 order.id=42
 
     **Colour.** Whether colour codes are emitted is decided once, when the
     formatter is created (the environment is read at that point), in this
@@ -170,10 +172,11 @@ class Simple(logging.Formatter):
     ``{"()": "gouge.colourcli.Simple", "pre_formatters":
     {"uvicorn.access": ["gouge.preformatters.uvicorn_access"]}}``.
 
-    .. note:: This formatter *suppresses* tracebacks by default! Remember that
-        is is meant to give a concise, readable output. If you need to see
-        tracebacks on the console, you can override this setting using
-        *show_exc*.
+    .. note::
+
+        This formatter *suppresses* tracebacks by default, to keep the
+        output concise. Pass ``show_exc=True`` to show them.
+        :py:meth:`basicConfig` shows them by default.
     """
 
     pre_formatters: dict[str, list[Callable[[str], str]]]
@@ -193,11 +196,12 @@ class Simple(logging.Formatter):
         **kwargs: Any,
     ) -> list[Handler]:
         """
-        Convenience method to have a one-liner set-up.
+        Configure logging with :py:func:`logging.basicConfig` and a
+        :py:class:`Simple` formatter, in one call.
 
         *show_exc*, *show_threads*, *show_pid*, *force_styling*,
         *show_extra* and *pre_formatters* are directly passed to
-        :py:class:`~.Simple`. The remaining *kwargs* are passed on to
+        :py:class:`Simple`. The remaining *kwargs* are passed on to
         :py:func:`logging.basicConfig`.
 
         If *highlighted_path* is set, it will highlight local filenames in
@@ -213,10 +217,12 @@ class Simple(logging.Formatter):
         modified. This is useful if you want to modify the handlers any further
         (for example using :py:class:`~gouge.filters.ShiftingFilter`).
 
-        Colour follows the rules described in :py:class:`~.Simple`:
+        Colour follows the rules described in :py:class:`Simple`:
         *force_styling* or ``FORCE_COLOR`` switch colorama's stripping off,
         ``NO_COLOR`` makes it strip everything, and otherwise colorama strips
         the codes if the stream is not a terminal.
+
+        :returns: The handlers whose formatter was replaced.
         """
         decision = _colour_decision(force_styling)
         clr.init(strip=(None if decision is None else not decision))
@@ -292,6 +298,13 @@ class Simple(logging.Formatter):
             self.highlighted_path = None
 
     def format(self, record: LogRecord) -> str:
+        """
+        Format *record* as one coloured line, followed by its traceback if
+        *show_exc* is set.
+
+        :param record: The record to format.
+        :returns: The formatted text.
+        """
         output = self._format(record)
         if self._strip_colour:
             output = P_ANSI.sub("", output)
@@ -428,7 +441,7 @@ class Simple(logging.Formatter):
 
 def _format_value(value: object) -> str:
     """
-    Render *value* for a ``key=value`` pair: :py:func:`str`, unless that is
+    Render *value* for a ``key=value`` pair: :py:class:`str`, unless that is
     empty or contains whitespace, then :py:func:`repr` of that string.
     """
     text = str(value)

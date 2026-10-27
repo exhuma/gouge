@@ -1,0 +1,26 @@
+version: 1
+disable_existing_loggers: false
+formatters:
+  console:
+    "()": gouge.colourcli.Simple
+    show_exc: true
+    pre_formatters:
+      uvicorn.access:
+        - gouge.preformatters.uvicorn_access
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: console
+root:
+  level: WARNING
+  handlers: [console]
+loggers:
+  # Your application.
+  app:
+    level: DEBUG
+  # uvicorn is quiet by default. uvicorn.error holds the start-up
+  # messages, uvicorn.access the access log.
+  uvicorn.error:
+    level: INFO
+  uvicorn.access:
+    level: INFO

@@ -62,13 +62,11 @@ Version 1.4.0
   error logs
 * Add link to the documentation from the Readme
 
-
 Version 1.3.0
 -------------
 
 * Replace ``blessings`` with ``colorama``. This will make colors work on
   Windows as well.
-
 
 Version 1.2.1
 -------------
