@@ -145,51 +145,70 @@ class Simple(logging.Formatter):
             )
 
         message_template = " ".join(message_items)
-
-        if self.show_exc:
-            if record.exc_info:
-                # Cache the traceback text to avoid converting it multiple times
-                # (it's constant anyway)
-                exc_text = getattr(record, "exc_text", "")
-                if not exc_text:
-                    record.exc_text = self.formatException(record.exc_info, "")
-
-            exc_text = getattr(record, "exc_text", "")
-            if exc_text:
-                exc_color = (
-                    "{f.RED}"
-                    if record.levelno >= logging.ERROR
-                    else "{f.WHITE}{s.DIM}"
-                )
-                message_template += f"\n{exc_color}"
-                message_template += self.formatException(
-                    record.exc_info, exc_color
-                )
-                message_template += "{s.RESET_ALL}"
-
-        return message_template.format(
+        output = message_template.format(
             levelcolor=colorize, f=clr.Fore, s=clr.Style, **vars(record)
         )
 
-    def formatException(  # type: ignore[override]
-        self, exc_info: Any, exc_color: str
-    ) -> str:
-        exc_text = super().formatException(exc_info)
-        if "{" in exc_text or "}" in exc_text:
-            exc_text = exc_text.replace("{", "{{").replace("}", "}}")
-        if self.highlighted_path is None:
-            return exc_text
+        if self.show_exc:
+            if record.exc_info and not record.exc_text:
+                # Cache the *plain* traceback, like the stdlib formatter
+                # does. Other handlers may reuse ``record.exc_text``, so it
+                # must not contain any escape codes.
+                record.exc_text = self.formatException(record.exc_info)
+            if record.exc_text:
+                exc_color = (
+                    clr.Fore.RED
+                    if record.levelno >= logging.ERROR
+                    else clr.Fore.WHITE + clr.Style.DIM
+                )
+                output += "\n" + self._colourise_traceback(
+                    record.exc_text, exc_color
+                )
 
+        return output
+
+    def formatException(self, exc_info: Any, exc_color: str = "") -> str:
+        """
+        Format the exception in *exc_info* as traceback text.
+
+        Without *exc_color* the plain traceback is returned, exactly as
+        :py:meth:`logging.Formatter.formatException` does. Otherwise each
+        line is wrapped in *exc_color* and file names below
+        *highlighted_path* are shown in yellow.
+
+        :param exc_info: The exception tuple as returned by
+            :py:func:`sys.exc_info`.
+        :param exc_color: The ANSI escape sequence used for the traceback.
+        """
+        exc_text = super().formatException(exc_info)
+        if not exc_color:
+            return exc_text
+        return self._colourise_traceback(exc_text, exc_color)
+
+    def _colourise_traceback(self, exc_text: str, exc_color: str) -> str:
+        """
+        Colour every line of *exc_text* with *exc_color*.
+
+        Each line starts with the colour and ends with a reset, so the
+        colour survives viewers which reset the attributes per line.
+        Highlighted file names are followed by *exc_color* again to
+        restore the full traceback colour (foreground and style).
+        """
         pth = self.highlighted_path
 
         def highlight_local_filenames(match: re.Match[str]) -> str:
             filename = Path(match.group(1)).absolute()
-            if filename.is_relative_to(pth):
+            if pth is not None and filename.is_relative_to(pth):
                 return match.group(0).replace(
                     match.group(1),
                     f"{clr.Fore.YELLOW}{match.group(1)}{exc_color}",
                 )
             return match.group(0)
 
-        exc_text = P_FILENAME.sub(highlight_local_filenames, exc_text)
-        return exc_text
+        lines = []
+        for line in exc_text.splitlines():
+            if line:
+                line = P_FILENAME.sub(highlight_local_filenames, line)
+                line = f"{exc_color}{line}{clr.Style.RESET_ALL}"
+            lines.append(line)
+        return "\n".join(lines)
