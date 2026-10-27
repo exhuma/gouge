@@ -2,9 +2,9 @@
 This module contains everything needed to emit colourful messages on the CLI
 """
 
-import importlib
 import logging
 import os
+import pkgutil
 import re
 from collections.abc import Callable, Mapping, Sequence
 from logging import Handler, LogRecord
@@ -13,7 +13,11 @@ from typing import Any, Literal
 
 import colorama as clr
 
-from gouge._record import extra_attributes, selected_attributes
+from gouge._record import (
+    cache_exc_text,
+    extra_attributes,
+    selected_attributes,
+)
 
 P_FILENAME = re.compile(r"File \"([^\"]+)\", line (\d+), in ([^\s]+)")
 P_ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
@@ -48,21 +52,17 @@ def _resolve_pre_formatter(
     spec: Callable[[str], str] | str,
 ) -> Callable[[str], str]:
     """
-    Return *spec* if it is callable, otherwise import the dotted path.
+    Return *spec* if it is callable, otherwise resolve it with
+    :py:func:`pkgutil.resolve_name`. Both ``"package.module.function"`` and
+    ``"package.module:function"`` are accepted.
 
-    :raises ValueError: If a string is not a dotted path to a callable.
+    :raises ValueError: If a string cannot be resolved to a callable.
     """
     if not isinstance(spec, str):
         return spec
-    module_name, _, attribute = spec.rpartition(".")
-    if not module_name:
-        raise ValueError(
-            f"Invalid pre-formatter {spec!r}: expected a dotted path like "
-            "'package.module.function'"
-        )
     try:
-        resolved = getattr(importlib.import_module(module_name), attribute)
-    except (ImportError, AttributeError) as exc:
+        resolved = pkgutil.resolve_name(spec)
+    except (ValueError, ImportError, AttributeError) as exc:
         raise ValueError(
             f"Cannot import pre-formatter {spec!r}: {exc}"
         ) from exc
@@ -70,6 +70,27 @@ def _resolve_pre_formatter(
         raise ValueError(f"Pre-formatter {spec!r} is not callable")
     result: Callable[[str], str] = resolved
     return result
+
+
+#: Colour of the level name, by the highest level it applies to. Anything
+#: above the last entry uses :py:data:`_CRITICAL_COLOUR`.
+_LEVEL_COLOURS = (
+    (logging.DEBUG, clr.Style.BRIGHT + clr.Fore.BLACK),
+    (logging.INFO, clr.Fore.CYAN),
+    (logging.WARNING, clr.Fore.YELLOW),
+    (logging.ERROR, clr.Style.BRIGHT + clr.Fore.RED),
+)
+_CRITICAL_COLOUR = clr.Style.BRIGHT + clr.Fore.YELLOW + clr.Back.RED
+
+
+def _level_colour(levelno: int) -> str:
+    """
+    Return the ANSI sequence used to colour the level name of a record.
+    """
+    for maximum, colour in _LEVEL_COLOURS:
+        if levelno <= maximum:
+            return colour
+    return _CRITICAL_COLOUR
 
 
 def capture_uvicorn(
@@ -120,9 +141,11 @@ class Simple(logging.Formatter):
         :py:class:`str`, or a dotted path to one, such as
         ``"gouge.preformatters.uvicorn_access"``. Paths are imported once
         when the formatter is created, which makes this option usable from
-        :py:func:`logging.config.dictConfig` and YAML files. An invalid path
-        raises :py:class:`ValueError` naming it. The ``pre_formatters``
-        attribute always holds callables.
+        :py:func:`logging.config.dictConfig` and YAML files. Paths are
+        resolved with :py:func:`pkgutil.resolve_name`, so both
+        ``"package.module.function"`` and ``"package.module:function"``
+        work. An invalid path raises :py:class:`ValueError` naming it. The
+        ``pre_formatters`` attribute always holds callables.
     :params show_threads: Whether to display thread names or not.
     :params show_exc: Whether to display tracebacks or not.
     :params highlighted_path: Local filenames below this path are highlighted
@@ -284,7 +307,7 @@ class Simple(logging.Formatter):
         self.show_exc = show_exc
         self.force_styling = force_styling
         self.show_pid = show_pid
-        self._colour = _colour_decision(force_styling)
+        self._strip_colour = _colour_decision(force_styling) is False
         self.pre_formatters = {
             name: [_resolve_pre_formatter(item) for item in items]
             for name, items in (pre_formatters or {}).items()
@@ -306,21 +329,12 @@ class Simple(logging.Formatter):
 
     def format(self, record: LogRecord) -> str:
         output = self._format(record)
-        if self._colour is False:
+        if self._strip_colour:
             output = P_ANSI.sub("", output)
         return output
 
     def _format(self, record: LogRecord) -> str:
-        if record.levelno <= logging.DEBUG:
-            colorize = clr.Style.BRIGHT + clr.Fore.BLACK
-        elif record.levelno <= logging.INFO:
-            colorize = clr.Fore.CYAN
-        elif record.levelno <= logging.WARNING:
-            colorize = clr.Fore.YELLOW
-        elif record.levelno <= logging.ERROR:
-            colorize = clr.Style.BRIGHT + clr.Fore.RED
-        else:
-            colorize = clr.Style.BRIGHT + clr.Fore.YELLOW + clr.Back.RED
+        colorize = _level_colour(record.levelno)
 
         message = record.getMessage()
         for pre_formatter in self.pre_formatters.get(record.name, []):
@@ -358,22 +372,31 @@ class Simple(logging.Formatter):
             output += f" {clr.Style.DIM}{extras}{clr.Style.RESET_ALL}"
 
         if self.show_exc:
-            if record.exc_info and not record.exc_text:
-                # Cache the *plain* traceback, like the stdlib formatter
-                # does. Other handlers may reuse ``record.exc_text``, so it
-                # must not contain any escape codes.
-                record.exc_text = self.formatException(record.exc_info)
-            if record.exc_text:
-                exc_color = (
-                    clr.Fore.RED
-                    if record.levelno >= logging.ERROR
-                    else clr.Fore.WHITE + clr.Style.DIM
-                )
-                output += "\n" + self._colourise_traceback(
-                    record.exc_text, exc_color
-                )
+            output = self._append_traceback(output, record)
 
         return output
+
+    def _append_traceback(self, output: str, record: LogRecord) -> str:
+        """
+        Return *output* followed by the coloured traceback of *record*, if
+        it has one.
+        """
+        # Cache the *plain* traceback, like the stdlib formatter does.
+        # Other handlers may reuse ``record.exc_text``, so it must not
+        # contain any escape codes.
+        cache_exc_text(record, self)
+        if not record.exc_text:
+            return output
+        exc_color = (
+            clr.Fore.RED
+            if record.levelno >= logging.ERROR
+            else clr.Fore.WHITE + clr.Style.DIM
+        )
+        return (
+            output
+            + "\n"
+            + self._colourise_traceback(record.exc_text, exc_color)
+        )
 
     def _format_extras(self, record: LogRecord) -> str:
         """

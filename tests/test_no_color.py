@@ -56,11 +56,13 @@ def test_precedence(
     force: bool,
     env: dict[str, str],
     expected: bool | None,
+    make_record: MakeRecord,
 ) -> None:
     for key, value in env.items():
         monkeypatch.setenv(key, value)
     assert _colour_decision(force) is expected
-    assert Simple(force_styling=force)._colour is expected
+    output = Simple(force_styling=force).format(make_record())
+    assert bool(P_ANSI.search(output)) is (expected is not False)
 
 
 def test_default_output_is_unchanged(make_record: MakeRecord) -> None:

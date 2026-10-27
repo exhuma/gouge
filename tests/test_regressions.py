@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from gouge.colourcli import Simple
+from conftest import MakeRecord
+from gouge.colourcli import P_ANSI, Simple
 from gouge.filters import ShiftingFilter
 
 
@@ -49,11 +50,16 @@ def test_no_highlighted_path_without_src(
 
 @pytest.mark.parametrize("force", [True, False])
 def test_basic_config_forwards_force_styling(
-    force: bool, restore_root_logger: logging.Logger
+    force: bool,
+    restore_root_logger: logging.Logger,
+    monkeypatch: pytest.MonkeyPatch,
+    make_record: MakeRecord,
 ) -> None:
     """
-    Ensure *force_styling* reaches the created formatter.
+    Ensure *force_styling* reaches the created formatter: it overrides
+    ``NO_COLOR``, and without it the output is plain.
     """
+    monkeypatch.setenv("NO_COLOR", "1")
     stream = io.StringIO()
     stream.name = "<stderr>"
     handlers = Simple.basicConfig(
@@ -61,9 +67,8 @@ def test_basic_config_forwards_force_styling(
     )
     assert handlers
     for handler in handlers:
-        formatter = handler.formatter
-        assert isinstance(formatter, Simple)
-        assert formatter.force_styling is force
+        output = handler.format(make_record())
+        assert bool(P_ANSI.search(output)) is force
 
 
 def test_basic_config_with_stringio_stream(

@@ -92,6 +92,11 @@ def test_pre_formatters_accept_callables_and_strings(
     assert "HI" in fmt.format(make_record("hi", name="a", level=logging.INFO))
 
 
+def test_pre_formatter_accepts_colon_syntax() -> None:
+    fmt = Simple(pre_formatters={"a": ["gouge.preformatters:uvicorn_access"]})
+    assert fmt.pre_formatters == {"a": [uvicorn_access]}
+
+
 @pytest.mark.parametrize(
     "spec,fragment",
     [

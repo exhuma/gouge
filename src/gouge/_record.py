@@ -78,3 +78,21 @@ def selected_attributes(
         elif hasattr(record, name):
             output[name] = getattr(record, name)
     return output
+
+
+def cache_exc_text(
+    record: logging.LogRecord, formatter: logging.Formatter
+) -> None:
+    """
+    Cache the plain traceback of *record* in ``record.exc_text``.
+
+    Like :py:meth:`logging.Formatter.format` does, the text is only created
+    if the record has exception information and no text yet. It is created
+    with ``formatter.formatException(record.exc_info)``, so it never
+    contains escape codes: other handlers may reuse it.
+
+    :param record: The record to update.
+    :param formatter: The formatter used to render the traceback.
+    """
+    if record.exc_info and not record.exc_text:
+        record.exc_text = formatter.formatException(record.exc_info)

@@ -16,7 +16,19 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from gouge._record import extra_attributes
+from gouge._record import cache_exc_text, extra_attributes
+
+
+def _basic_config(
+    formatter_class: type[logging.Formatter], **kwargs: Any
+) -> None:
+    """
+    Call :py:func:`logging.basicConfig` with *kwargs*, then set a
+    *formatter_class* formatter on every handler of the root logger.
+    """
+    logging.basicConfig(**kwargs)
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(formatter_class())
 
 
 class CSVLog(logging.Formatter):
@@ -56,10 +68,7 @@ class CSVLog(logging.Formatter):
 
     @staticmethod
     def basicConfig(**kwargs: Any) -> None:
-        logging.basicConfig(**kwargs)
-        root = logging.getLogger()
-        for handler in root.handlers:
-            handler.setFormatter(CSVLog())
+        _basic_config(CSVLog, **kwargs)
 
     def __init__(
         self,
@@ -79,14 +88,8 @@ class CSVLog(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         record.message = record.getMessage()
 
-        if record.exc_info:
-            # Cache the traceback text to avoid converting it multiple times
-            # (it's constant anyway)
-            exc_text = getattr(record, "exc_text", "")
-            if not exc_text:
-                record.exc_text = self.formatException(record.exc_info)
-
-        exc_text = getattr(record, "exc_text", "")
+        cache_exc_text(record, self)
+        exc_text = record.exc_text
         message_items = [
             record.created,
             record.filename,
@@ -153,10 +156,7 @@ class XMLLog(logging.Formatter):
 
     @staticmethod
     def basicConfig(**kwargs: Any) -> None:
-        logging.basicConfig(**kwargs)
-        root = logging.getLogger()
-        for handler in root.handlers:
-            handler.setFormatter(XMLLog())
+        _basic_config(XMLLog, **kwargs)
 
     def __init__(
         self,
@@ -177,14 +177,8 @@ class XMLLog(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         record.message = record.getMessage()
 
-        if record.exc_info:
-            # Cache the traceback text to avoid converting it multiple times
-            # (it's constant anyway)
-            exc_text = getattr(record, "exc_text", "")
-            if not exc_text:
-                record.exc_text = self.formatException(record.exc_info)
-
-        exc_text = getattr(record, "exc_text", "")
+        cache_exc_text(record, self)
+        exc_text = record.exc_text
         message_items = [
             ("created", record.created),
             ("filename", record.filename),
@@ -299,23 +293,7 @@ class JSONLog(logging.Formatter):
 
         :param kwargs: Passed on to :py:func:`logging.basicConfig`.
         """
-        logging.basicConfig(**kwargs)
-        root = logging.getLogger()
-        for handler in root.handlers:
-            handler.setFormatter(JSONLog())
-
-    def __init__(
-        self,
-        fmt: str | None = None,
-        datefmt: str | None = None,
-        style: Literal["%", "{", "$"] = "%",
-        validate: bool = True,
-        *,
-        defaults: Mapping[str, Any] | None = None,
-    ) -> None:
-        super().__init__(
-            fmt, datefmt, style, validate=validate, defaults=defaults
-        )
+        _basic_config(JSONLog, **kwargs)
 
     def formatTime(
         self, record: logging.LogRecord, datefmt: str | None = None
@@ -353,9 +331,7 @@ class JSONLog(logging.Formatter):
                 key = f"extra.{key}"
             payload.setdefault(key, value)
 
-        if record.exc_info and not record.exc_text:
-            # Cache the plain traceback, like the standard formatter does.
-            record.exc_text = self.formatException(record.exc_info)
+        cache_exc_text(record, self)
         if record.exc_text:
             payload["exc_text"] = record.exc_text
         if record.stack_info:
