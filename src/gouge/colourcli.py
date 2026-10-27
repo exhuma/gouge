@@ -356,11 +356,13 @@ class Simple(logging.Formatter):
             if record.levelno >= logging.ERROR
             else clr.Fore.WHITE + clr.Style.DIM
         )
-        return (
-            output
-            + "\n"
-            + self._colourise_traceback(record.exc_text, exc_color)
-        )
+        if record.exc_info:
+            # Go through the public hook, so subclasses overriding
+            # formatException() change the console traceback (as in 2.2.5).
+            traceback = self.formatException(record.exc_info, exc_color)
+        else:
+            traceback = self._colourise_traceback(record.exc_text, exc_color)
+        return f"{output}\n{traceback}"
 
     def _format_extras(self, record: LogRecord) -> str:
         """

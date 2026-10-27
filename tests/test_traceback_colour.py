@@ -8,9 +8,11 @@ from collections.abc import Callable
 from logging import LogRecord
 from pathlib import Path
 from types import TracebackType
+from typing import Any
 
 import pytest
 
+from conftest import MakeRecord
 from gouge.colourcli import P_ANSI, Simple
 
 RED = "\x1b[31m"
@@ -215,3 +217,29 @@ def test_format_exception_api(no_src: Path) -> None:
     assert coloured.splitlines() == [
         f"{RED}{line}{RESET}" for line in plain.splitlines()
     ]
+
+
+def test_format_exception_override_is_the_traceback_hook(
+    make_record: MakeRecord,
+) -> None:
+    """
+    Ensure a subclass overriding ``formatException`` controls the console
+    traceback, while ``record.exc_text`` keeps the plain text.
+    """
+    calls: list[str] = []
+
+    class Custom(Simple):
+        def formatException(self, exc_info: Any, exc_color: str = "") -> str:
+            calls.append(exc_color)
+            if not exc_color:
+                return super().formatException(exc_info)
+            return f"<<custom {exc_info[1]}>>"
+
+    record = make_record(level=logging.ERROR, exc_info=True)
+    output = Custom(show_exc=True).format(record)
+    assert output.endswith("\n<<custom boom>>")
+    assert calls == ["", RED]
+    assert record.exc_text is not None
+    assert "ValueError: boom" in record.exc_text
+    assert "<<custom" not in record.exc_text
+    assert "\x1b" not in record.exc_text
