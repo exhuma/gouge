@@ -4,6 +4,7 @@ This module contains everything needed to emit colourful messages on the CLI
 
 import importlib
 import logging
+import os
 import re
 from collections.abc import Callable, Mapping, Sequence
 from logging import Handler, LogRecord
@@ -15,9 +16,32 @@ import colorama as clr
 from gouge._record import extra_attributes, selected_attributes
 
 P_FILENAME = re.compile(r"File \"([^\"]+)\", line (\d+), in ([^\s]+)")
+P_ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 
 #: The loggers :py:func:`capture_uvicorn` redirects by default.
 UVICORN_LOGGERS = ("uvicorn", "uvicorn.error", "uvicorn.access")
+
+
+def _colour_decision(force_styling: bool = False) -> bool | None:
+    """
+    Decide whether output is coloured. This is the single place where that
+    decision is taken; the environment is read at the time of the call.
+
+    In order of precedence:
+
+    1. *force_styling* is true: colour (``True``).
+    2. Environment variable ``FORCE_COLOR`` set and not empty: colour.
+    3. Environment variable ``NO_COLOR`` set and not empty: no colour
+       (``False``), see https://no-color.org.
+    4. Otherwise ``None``: the legacy behaviour. :py:class:`Simple` emits
+       colour codes, and :py:meth:`Simple.basicConfig` lets colorama strip
+       them if the stream is not a terminal.
+    """
+    if force_styling or os.environ.get("FORCE_COLOR"):
+        return True
+    if os.environ.get("NO_COLOR"):
+        return False
+    return None
 
 
 def _resolve_pre_formatter(
@@ -142,6 +166,19 @@ class Simple(logging.Formatter):
         )
         # ... WARNING    [app] Order created correlation_id=4bf92f35 order.id=42
 
+    **Colour.** Whether colour codes are emitted is decided once, when the
+    formatter is created (the environment is read at that point), in this
+    order:
+
+    1. *force_styling* is true: colour.
+    2. Environment variable ``FORCE_COLOR`` set and not empty: colour.
+    3. Environment variable ``NO_COLOR`` set and not empty
+       (https://no-color.org): no colour. The output then contains no ANSI
+       escape sequences at all, including those emitted by pre-formatters.
+    4. Otherwise a directly created formatter emits colour codes, as it
+       cannot know where its output goes. :py:meth:`basicConfig` lets
+       colorama strip them when the stream is not a terminal.
+
     With :py:func:`logging.config.dictConfig`, use for example
     ``{"()": "gouge.colourcli.Simple", "pre_formatters":
     {"uvicorn.access": ["gouge.preformatters.uvicorn_access"]}}``.
@@ -188,8 +225,14 @@ class Simple(logging.Formatter):
         The function also returns a list of all handlers which have been
         modified. This is useful if you want to modify the handlers any further
         (for example using :py:class:`~gouge.filters.ShiftingFilter`).
+
+        Colour follows the rules described in :py:class:`~.Simple`:
+        *force_styling* or ``FORCE_COLOR`` switch colorama's stripping off,
+        ``NO_COLOR`` makes it strip everything, and otherwise colorama strips
+        the codes if the stream is not a terminal.
         """
-        clr.init(strip=(False if force_styling else None))
+        decision = _colour_decision(force_styling)
+        clr.init(strip=(None if decision is None else not decision))
         logging.basicConfig(**kwargs)
         root = logging.getLogger()
         output = []
@@ -241,6 +284,7 @@ class Simple(logging.Formatter):
         self.show_exc = show_exc
         self.force_styling = force_styling
         self.show_pid = show_pid
+        self._colour = _colour_decision(force_styling)
         self.pre_formatters = {
             name: [_resolve_pre_formatter(item) for item in items]
             for name, items in (pre_formatters or {}).items()
@@ -261,6 +305,12 @@ class Simple(logging.Formatter):
             self.highlighted_path = None
 
     def format(self, record: LogRecord) -> str:
+        output = self._format(record)
+        if self._colour is False:
+            output = P_ANSI.sub("", output)
+        return output
+
+    def _format(self, record: LogRecord) -> str:
         if record.levelno <= logging.DEBUG:
             colorize = clr.Style.BRIGHT + clr.Fore.BLACK
         elif record.levelno <= logging.INFO:
