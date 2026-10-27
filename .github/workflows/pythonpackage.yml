@@ -1,5 +1,5 @@
 ---
-name: Python package
+name: CI
 
 # yamllint disable-line rule:truthy
 on:
@@ -107,10 +107,43 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --python '${{ steps.python.outputs.python-path }}'
 
-      - name: Test with pytest
-        run: uv run pytest
+      - name: Run unit tests
+        run: uv run pytest --tb=short
 
-  quality-control:
+  prerelease:
+    name: Test (upcoming Python ${{ needs.versions.outputs.next }}, may fail)
+    needs: versions
+    runs-on: ubuntu-latest
+    # Informational only: never fails the workflow or blocks publishing.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.2
+
+      - name: Set up Python ${{ needs.versions.outputs.next }} (pre-release)
+        id: python
+        # Fails when no pre-release of the next version exists yet.
+        continue-on-error: true
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ needs.versions.outputs.next }}
+          allow-prereleases: true
+
+      - name: Note missing pre-release
+        if: steps.python.outcome != 'success'
+        run: echo "::notice::No Python ${{ needs.versions.outputs.next }} (pre-)release is available yet; skipping."
+
+      - name: Install dependencies
+        if: steps.python.outcome == 'success'
+        run: uv sync --locked --python '${{ steps.python.outputs.python-path }}'
+
+      - name: Run unit tests
+        if: steps.python.outcome == 'success'
+        run: uv run pytest --tb=short
+
+  lint:
     runs-on: ubuntu-latest
     needs: versions
     steps:
@@ -128,27 +161,73 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --python '${{ steps.python.outputs.python-path }}'
 
-      - name: Lint with pylint
-        run: uv run --with pylint pylint --reports=y --exit-zero gouge
-
-      - name: Check pre-commit hooks
+      # Runs ruff, ruff-format and (via "uv run mypy") the strict type check.
+      - name: Run pre-commit
         run: uvx pre-commit run --all-files
 
-  publish:
-    needs: [test, quality-control]
+  docs:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    needs: versions
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.2
 
-      - name: Build distribution
-        run: uv build
-
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@v1.13.0
+      - name: Set up Python
+        id: python
+        uses: actions/setup-python@v7
         with:
-          user: __token__
-          password: ${{ secrets.pypi_token }}
+          python-version: ${{ needs.versions.outputs.latest }}
+
+      - name: Install dependencies
+        run: uv sync --locked --python '${{ steps.python.outputs.python-path }}'
+
+      - name: Build documentation
+        run: uv run sphinx-build -n -W --keep-going -b html docs docs/_build/html
+
+  build:
+    name: Build and inspect package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Builds the sdist and wheel, runs check-wheel-contents and twine check,
+      # prints the contents and uploads them as the "Packages" artifact. Runs
+      # on every event so packaging problems show up in PRs.
+      - uses: hynek/build-and-inspect-python-package@v3.0.2
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [versions, test, lint, docs, build]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.2
+
+      - name: Check that the tag matches the package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(uv version --short)"
+          if [ "${TAG#v}" != "$version" ]; then
+            echo "::error::Tag $TAG does not match the pyproject.toml version $version"
+            exit 1
+          fi
+
+      - name: Download the built packages
+        uses: actions/download-artifact@v8
+        with:
+          name: Packages
+          path: dist
+
+      # Trusted Publishing (OIDC); also uploads PEP 740 attestations.
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
