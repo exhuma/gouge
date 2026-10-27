@@ -111,5 +111,7 @@ def test_basic_config(
     stream = io.StringIO()
     cls.basicConfig(stream=stream, force=True, level=logging.INFO)
     logging.getLogger("x").info("hi")
-    assert all(isinstance(h.formatter, cls) for h in restore_root_logger.handlers)
+    assert all(
+        isinstance(h.formatter, cls) for h in restore_root_logger.handlers
+    )
     assert "hi" in stream.getvalue()
