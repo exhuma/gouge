@@ -16,7 +16,9 @@ Version 2.3.0
   correlation ID or the OpenTelemetry ``trace_id``/``span_id``, after the
   message.
 * New ``gouge.parseable.JSONLog`` formatter: one JSON object per line,
-  including extra attributes.
+  including extra attributes. The output is always valid JSON: non-finite
+  floats are written as strings and values which cannot be serialised as
+  their ``str()``.
 * ``pre_formatters`` accepts dotted-path strings such as
   ``"gouge.preformatters.uvicorn_access"``, so ``dictConfig`` and YAML
   configurations no longer need a ``Simple`` subclass.

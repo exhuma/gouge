@@ -5,8 +5,8 @@ Regression tests for bugs fixed in the 2.3 line.
 import io
 import logging
 import warnings
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 import pytest
 

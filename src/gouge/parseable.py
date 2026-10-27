@@ -12,6 +12,7 @@ import csv
 import io
 import json
 import logging
+import math
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -232,6 +233,46 @@ class XMLLog(logging.Formatter):
         return output
 
 
+def _dumps(value: object) -> str:
+    """
+    Return *value* as compact JSON, with :py:class:`str` for the types JSON
+    does not know.
+    """
+    return json.dumps(
+        value, ensure_ascii=False, default=str, separators=(",", ":")
+    )
+
+
+def _finite(value: object, seen: frozenset[int] = frozenset()) -> object:
+    """
+    Return *value* with non-finite floats replaced by strings, also inside
+    lists, tuples and dictionaries.
+
+    :raises ValueError: On a circular reference.
+    """
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value).replace("inf", "Infinity").replace("nan", "NaN")
+    if isinstance(value, dict | list | tuple):
+        if id(value) in seen:
+            raise ValueError("Circular reference")
+        seen |= {id(value)}
+        if isinstance(value, dict):
+            return {key: _finite(item, seen) for key, item in value.items()}
+        return [_finite(item, seen) for item in value]
+    return value
+
+
+def _dumps_value(value: object) -> str:
+    """
+    Return *value* as strict JSON. Anything which cannot be serialised is
+    written as its :py:class:`str` instead of raising.
+    """
+    try:
+        return _dumps(_finite(value))
+    except (TypeError, ValueError, RecursionError):
+        return _dumps(str(value))
+
+
 class JSONLog(logging.Formatter):
     """
     JSON Lines formatter: one JSON object per record.
@@ -259,8 +300,17 @@ class JSONLog(logging.Formatter):
 
     The keys above always win: an extra attribute with the same name as
     one of them is written as ``extra.<name>`` instead (and dropped if that
-    name is taken as well). Values which JSON cannot represent are written
-    as their :py:class:`str`.
+    name is taken as well).
+
+    The output is always strict JSON and :py:meth:`format` never raises
+    because of an extra attribute. Values which JSON cannot represent are
+    written as their :py:class:`str`. This includes non-finite floats
+    (``nan``, ``inf``), which become ``"NaN"``, ``"Infinity"`` and
+    ``"-Infinity"``, also when nested in lists or dictionaries. If a value
+    cannot be serialised at all (a dictionary with keys which are not
+    strings, numbers, booleans or ``None``, or a circular reference), the
+    :py:class:`str` of the whole value is written instead. Extra attributes
+    whose name is not a string are left out.
 
     :param fmt: Ignored. Accepted so the formatter can be configured like
         any :py:class:`logging.Formatter`.
@@ -350,6 +400,11 @@ class JSONLog(logging.Formatter):
         if record.stack_info:
             payload["stack_info"] = self.formatStack(record.stack_info)
 
-        return json.dumps(
-            payload, ensure_ascii=False, default=str, separators=(",", ":")
+        return (
+            "{"
+            + ",".join(
+                f"{_dumps(key)}:{_dumps_value(value)}"
+                for key, value in payload.items()
+            )
+            + "}"
         )

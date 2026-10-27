@@ -36,7 +36,8 @@ def extra_attributes(record: logging.LogRecord) -> dict[str, object]:
     """
     Return the extra attributes of *record*, sorted by name.
 
-    Names starting with ``_`` are left out. The OpenTelemetry IDs
+    Names starting with ``_`` are left out, and so are attributes whose
+    name is not a string (``extra={1: "x"}``). The OpenTelemetry IDs
     ``otelTraceID`` and ``otelSpanID`` are returned as ``trace_id`` and
     ``span_id``, unless the record already has attributes of that name or
     the ID is the "no active span" value ``"0"``.
@@ -47,7 +48,9 @@ def extra_attributes(record: logging.LogRecord) -> dict[str, object]:
     output = {
         key: value
         for key, value in vars(record).items()
-        if key not in STANDARD_ATTRIBUTES and not key.startswith("_")
+        if isinstance(key, str)
+        and key not in STANDARD_ATTRIBUTES
+        and not key.startswith("_")
     }
     for otel_name, name in _OTEL_RENAMED.items():
         value = getattr(record, otel_name, None)

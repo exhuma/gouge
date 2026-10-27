@@ -306,3 +306,66 @@ def test_basic_config(restore_root_logger: logging.Logger) -> None:
     data = _parse(stream.getvalue().rstrip("\n"))
     assert data["message"] == "hi"
     assert data["cid"] == "abc"
+
+
+def test_non_finite_floats_become_strings(make_record: MakeRecord) -> None:
+    """
+    Ensure the output is strict JSON: NaN and infinities are strings.
+    """
+    record = make_record(
+        extras={
+            "a": float("nan"),
+            "b": float("inf"),
+            "c": float("-inf"),
+            "d": {"x": [float("nan"), 1.5]},
+        }
+    )
+    line = JSONLog().format(record)
+    data = json.loads(
+        line,
+        parse_constant=lambda name: pytest.fail(f"invalid JSON: {name}"),
+    )
+    assert data["a"] == "NaN"
+    assert data["b"] == "Infinity"
+    assert data["c"] == "-Infinity"
+    assert data["d"] == {"x": ["NaN", 1.5]}
+
+
+def test_unserialisable_extras_fall_back_to_str(
+    make_record: MakeRecord,
+) -> None:
+    """
+    Ensure a dictionary with tuple keys or a circular reference does not
+    lose the record.
+    """
+    circular: list[object] = [1]
+    circular.append(circular)
+    shared = [1]
+    record = make_record(
+        extras={
+            "keys": {(1, 2): "x"},
+            "loop": circular,
+            "shared": [shared, shared],
+        }
+    )
+    data = json.loads(JSONLog().format(record))
+    assert data["message"] == "Order created"
+    assert data["keys"] == "{(1, 2): 'x'}"
+    assert data["loop"] == str(circular)
+    assert data["shared"] == [[1], [1]]
+
+
+def test_non_string_attribute_names_are_skipped(
+    make_record: MakeRecord,
+) -> None:
+    """
+    Ensure ``extra={1: "x"}`` neither crashes JSONLog nor Simple.
+    """
+    record = make_record(extras={"kept": "yes"})
+    vars(record)[1] = "x"  # type: ignore[index]
+    data = json.loads(JSONLog().format(record))
+    assert data["kept"] == "yes"
+    assert "1" not in data
+    output = Simple(show_extra=True).format(record)
+    assert "kept=yes" in output
+    assert "x" not in output.replace("Order created", "").split("kept=yes")[1]
