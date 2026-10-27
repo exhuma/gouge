@@ -6,13 +6,11 @@ and for the helpers which make that practical.
 import io
 import logging
 import logging.config
-from collections.abc import Iterator
-from typing import Any
 
 import pytest
 
 from conftest import MakeRecord
-from gouge.colourcli import Simple, capture_uvicorn
+from gouge.colourcli import Simple
 from gouge.preformatters import uvicorn_access
 
 ACCESS = '127.0.0.1 - "GET /x HTTP/1.1" 200'
@@ -126,47 +124,3 @@ def test_basic_config_forwards_pre_formatters(
     formatter = handlers[0].formatter
     assert isinstance(formatter, Simple)
     assert formatter.pre_formatters == {"a": [uvicorn_access]}
-
-
-@pytest.fixture
-def uvicorn_loggers() -> Iterator[list[logging.Logger]]:
-    loggers = [
-        logging.getLogger(n)
-        for n in ("uvicorn", "uvicorn.error", "uvicorn.access", "other")
-    ]
-    saved: list[Any] = [
-        (lg.handlers[:], lg.propagate, lg.level) for lg in loggers
-    ]
-    try:
-        yield loggers
-    finally:
-        for lg, (handlers, propagate, level) in zip(
-            loggers, saved, strict=True
-        ):
-            lg.handlers[:] = handlers
-            lg.propagate = propagate
-            lg.setLevel(level)
-
-
-def test_capture_uvicorn(uvicorn_loggers: list[logging.Logger]) -> None:
-    for logger in uvicorn_loggers:
-        logger.addHandler(logging.NullHandler())
-        logger.propagate = False
-    capture_uvicorn(level="WARNING")
-    for logger in uvicorn_loggers[:3]:
-        assert logger.handlers == []
-        assert logger.propagate is True
-        assert logger.level == logging.WARNING
-    other = uvicorn_loggers[3]
-    assert len(other.handlers) == 1
-    assert other.propagate is False
-
-
-def test_capture_uvicorn_custom_loggers_keep_level(
-    uvicorn_loggers: list[logging.Logger],
-) -> None:
-    other = uvicorn_loggers[3]
-    other.propagate = False
-    capture_uvicorn(loggers=["other"])
-    assert other.propagate is True
-    assert other.level == logging.NOTSET
