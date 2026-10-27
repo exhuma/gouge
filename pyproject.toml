@@ -1,6 +1,6 @@
 [project]
 name = "gouge"
-version = "2.2.5"
+version = "2.3.0"
 description = "Colourful console and structured log formatters for the Python logging module"
 authors = [{ name = "Michel Albert", email = "michel@albert.lu" }]
 license = "MIT"
