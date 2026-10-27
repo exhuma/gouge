@@ -60,6 +60,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 testpaths = ["tests", "src", "docs", "README.rst"]
 norecursedirs = ["docs/_build"]
 doctest_optionflags = ["ELLIPSIS"]
