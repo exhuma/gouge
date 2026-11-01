@@ -457,7 +457,7 @@ requires-dist = [{ name = "colorama", specifier = ">=0.4.6" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "michel-albert-sphinx", git = "https://github.com/exhuma/michel-albert-sphinx?rev=v0.4.0" },
+    { name = "michel-albert-sphinx", git = "https://github.com/exhuma/michel-albert-design?subdirectory=packages%2Fsphinx&rev=sphinx-v0.8.0" },
     { name = "mypy", specifier = ">=1.10" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
@@ -754,8 +754,8 @@ wheels = [
 
 [[package]]
 name = "michel-albert-sphinx"
-version = "0.4.0"
-source = { git = "https://github.com/exhuma/michel-albert-sphinx?rev=v0.4.0#b427cf5ab106992c0467d8eb362d6056497aa2f8" }
+version = "0.8.0"
+source = { git = "https://github.com/exhuma/michel-albert-design?subdirectory=packages%2Fsphinx&rev=sphinx-v0.8.0#700ebd1f8d550b730c2a6d4be78252593f280524" }
 dependencies = [
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },

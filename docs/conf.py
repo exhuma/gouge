@@ -24,6 +24,9 @@ intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+# Backdrop style: "ridges" (observability, signals) suits a logging library.
+michel_albert_backdrop_style = "ridges"
+
 html_title = "gouge"
 html_baseurl = "https://exhuma.github.io/gouge/"
 html_theme_options = {
